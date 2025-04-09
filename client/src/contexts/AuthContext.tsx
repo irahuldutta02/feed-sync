@@ -1,7 +1,6 @@
-import { createContext, useState, useContext, useEffect } from "react";
-import PropTypes from "prop-types"; // Import PropTypes
 import api from "@/services/api";
-import { useNavigate } from "react-router-dom";
+import PropTypes from "prop-types"; // Import PropTypes
+import { createContext, useContext, useEffect, useState } from "react";
 
 // No need for TypeScript interfaces here
 
@@ -14,7 +13,6 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem("authToken"));
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
 
   // Function to set user and token, update local storage and API headers
   const setupAuth = (userData, authToken) => {
@@ -43,7 +41,6 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     localStorage.removeItem("user");
     localStorage.removeItem("authToken");
-    navigate("/");
   };
 
   // Load user data if token exists on initial load or refresh
@@ -65,7 +62,7 @@ export const AuthProvider = ({ children }) => {
         setupAuth(response.data, storedToken);
       } catch (err) {
         console.error("Failed to load user:", err);
-        logout(); // Clear invalid token and user state
+        logout();
         setError("Session expired. Please log in again.");
       } finally {
         setIsLoading(false);

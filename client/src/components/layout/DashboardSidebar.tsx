@@ -1,10 +1,10 @@
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { BarChart2, Edit3, Home, LogOut, Settings, Star } from "lucide-react";
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Logo } from "../ui-custom/Logo";
-import { useAuth } from "@/contexts/AuthContext";
 
 type NavItemProps = {
   to: string;
@@ -35,6 +35,7 @@ const NavItem = ({ to, icon, label, isActive }: NavItemProps) => {
 const DashboardSidebar = () => {
   const location = useLocation();
   const pathname = location.pathname;
+  const navigate = useNavigate();
 
   const { logout } = useAuth();
 
@@ -86,6 +87,7 @@ const DashboardSidebar = () => {
             className="w-full justify-start gap-3 pl-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
             onClick={() => {
               logout();
+              navigate("/");
             }}
           >
             <LogOut size={18} />
