@@ -5,6 +5,9 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
+    ...(localStorage.getItem("authToken") && {
+      Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+    }),
   },
 });
 

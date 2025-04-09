@@ -29,7 +29,7 @@ export const MainRoutes = () => {
       element: <Layout />,
       children: [
         { path: "", element: <Navigate to="/dashboard" replace /> },
-        { path: "/campaigns/:slug", element: <FeedbackForm /> },
+        { path: "/c/:slug", element: <FeedbackForm /> },
         { path: "login", element: <Navigate to="/dashboard" replace /> },
         { path: "signup", element: <Navigate to="/dashboard" replace /> },
         { path: "*", element: <NotFound /> },
@@ -56,7 +56,7 @@ export const MainRoutes = () => {
         { path: "login", element: <Login /> },
         { path: "signup", element: <Signup /> },
         { path: "auth/callback", element: <AuthCallbackPage /> },
-        { path: "campaigns/:slug", element: <FeedbackForm /> },
+        { path: "c/:slug", element: <FeedbackForm /> },
         { path: "*", element: <NotFound /> },
       ],
     },
