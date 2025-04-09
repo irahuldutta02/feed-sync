@@ -1,10 +1,9 @@
-
-import React from 'react';
-import DashboardSidebar from './DashboardSidebar';
-import { Menu } from 'lucide-react';
+import React from "react";
+import DashboardSidebar from "./DashboardSidebar";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 type DashboardLayoutProps = {
   children: React.ReactNode;
@@ -15,7 +14,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     <div className="flex min-h-screen bg-muted/20">
       {/* Desktop Sidebar */}
       <DashboardSidebar />
-      
+
       {/* Main Content */}
       <div className="flex-1">
         {/* Mobile Header with Sidebar Toggle */}
@@ -38,16 +37,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </div>
           <ThemeToggle />
         </header>
-        
+
         {/* Desktop Header */}
-        <header className="hidden md:flex items-center justify-end p-4 border-b bg-background">
+        {/* <header className="hidden md:flex items-center justify-end p-4 border-b bg-background">
           <ThemeToggle />
-        </header>
-        
+        </header> */}
+
         {/* Page Content */}
-        <main className="p-6 md:p-8">
-          {children}
-        </main>
+        <main className="p-6 md:p-8">{children}</main>
       </div>
     </div>
   );

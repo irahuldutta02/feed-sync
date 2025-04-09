@@ -20,6 +20,10 @@ export const LoginCard = () => {
     redirectPath = "/";
   }
 
+  if (redirectPath === "/") {
+    redirectPath = "/dashboard";
+  }
+
   // Construct the backend OAuth URLs
   const googleLoginUrl = `${API_BASE_URL}/auth/google?redirect=${encodeURIComponent(
     redirectPath

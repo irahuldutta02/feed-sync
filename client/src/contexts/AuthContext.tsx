@@ -1,7 +1,7 @@
-// client/src/contexts/AuthContext.jsx
-import React, { createContext, useState, useContext, useEffect } from "react";
+import { createContext, useState, useContext, useEffect } from "react";
 import PropTypes from "prop-types"; // Import PropTypes
 import api from "@/services/api";
+import { useNavigate } from "react-router-dom";
 
 // No need for TypeScript interfaces here
 
@@ -14,6 +14,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem("authToken"));
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   // Function to set user and token, update local storage and API headers
   const setupAuth = (userData, authToken) => {
@@ -39,7 +40,10 @@ export const AuthProvider = ({ children }) => {
   // Logout function
   const logout = () => {
     setupAuth(null, null);
-    // Optionally: could call a backend logout endpoint if needed
+    setError(null);
+    localStorage.removeItem("user");
+    localStorage.removeItem("authToken");
+    navigate("/");
   };
 
   // Load user data if token exists on initial load or refresh

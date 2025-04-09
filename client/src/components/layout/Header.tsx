@@ -10,10 +10,7 @@ const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const { isAuthenticated, user } = useAuth();
-
-  console.log("User:", user);
-  console.log("Is Authenticated:", isAuthenticated);
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -65,19 +62,19 @@ const Header = () => {
             >
               Blog
             </Link>
-            <Link to="/login">
-              <Button
-                variant="ghost"
-                className="hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/50"
-              >
-                Login
-              </Button>
-            </Link>
-            <Link to="/signup">
-              <Button className="bg-brand-600 hover:bg-brand-700 text-white">
-                Get Started
-              </Button>
-            </Link>
+            {isAuthenticated ? (
+              <Link to="/dashboard">
+                <Button className="bg-brand-600 hover:bg-brand-700 text-white">
+                  Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <Link to="/signup">
+                <Button className="bg-brand-600 hover:bg-brand-700 text-white">
+                  Login
+                </Button>
+              </Link>
+            )}
           </nav>
 
           {/* Mobile menu button */}
