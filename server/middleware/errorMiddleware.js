@@ -4,6 +4,13 @@ const errorHandler = (err, req, res, next) => {
   let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   let message = err.message;
 
+  if (NODE_ENV === "development") {
+    console.error({
+      message: err.message,
+      stack: err.stack,
+    });
+  }
+
   if (err.name === "CastError" && err.kind === "ObjectId") {
     statusCode = 400;
     message = "Resource not found";

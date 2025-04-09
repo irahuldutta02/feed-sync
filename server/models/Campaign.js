@@ -12,7 +12,6 @@ const CampaignSchema = new mongoose.Schema(
     },
     link: {
       type: String,
-      required: true,
     },
     slug: {
       type: String,
@@ -24,12 +23,16 @@ const CampaignSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    feedbackCount: {
+      type: Number,
+      default: 0,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-    avarageRating: {
+    averageRating: {
       type: Number,
       default: 0,
     },

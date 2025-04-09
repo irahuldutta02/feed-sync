@@ -11,7 +11,7 @@ const { protect } = require("../middleware/authMiddleware");
 const campaignRouter = express.Router();
 
 campaignRouter.post("/create", protect, campaignCreate);
-campaignRouter.post("/update/:id", protect, campaignUpdate);
+campaignRouter.put("/update/:id", protect, campaignUpdate);
 campaignRouter.get("/detail/:id", campaignDetail);
 campaignRouter.get("/paginated_list/", campaignPaginatedList);
 campaignRouter.get("/manage_verified_user/:id", protect, manageVerifiedUser);

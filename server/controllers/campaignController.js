@@ -6,8 +6,15 @@ const User = require("../models/User");
 const Feedback = require("../models/Feedback");
 
 const campaignCreate = asyncHandler(async (req, res) => {
-  const { title, description, link, bannerImage, allowAnonymous, status } =
-    req.body;
+  const {
+    title,
+    slug,
+    description,
+    link,
+    bannerImage,
+    allowAnonymous,
+    status,
+  } = req.body;
 
   const mandatoryFields = [title, slug, description, bannerImage];
 
@@ -37,10 +44,11 @@ const campaignCreate = asyncHandler(async (req, res) => {
   const slugExists = await Campaign.findOne({ slug });
   if (slugExists) {
     res.status(400);
-    throw new Error(`Slug  already exists.`);
+    throw new Error(`Slug already exists.`);
   }
 
-  const validBannerImageRegex = /^(https?:\/\/).*\.(jpg|jpeg|png|gif)$/i;
+  const validBannerImageRegex =
+    /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*(\?.*)?$/;
   if (!validBannerImageRegex.test(bannerImage)) {
     res.status(400);
     throw new Error("Invalid banner image format. Must be a valid image URL.");
@@ -72,7 +80,7 @@ const campaignCreate = asyncHandler(async (req, res) => {
     description,
     link,
     bannerImage,
-    slug: generatedSlug,
+    slug,
     createdBy: req.user._id,
     allowAnonymous: allowAnonymous ?? false,
     status: status ?? "Draft",
@@ -81,7 +89,7 @@ const campaignCreate = asyncHandler(async (req, res) => {
   const createdCampaign = await campaign.save();
 
   if (createdCampaign) {
-    res.status(201).json({
+    return res.status(201).json({
       status: 201,
       error: false,
       data: createdCampaign,
@@ -136,7 +144,8 @@ const campaignUpdate = asyncHandler(async (req, res) => {
 
   // Validations for bannerImage
   if (bannerImage) {
-    const validBannerImageRegex = /^(https?:\/\/).*\.(jpg|jpeg|png|gif)$/i;
+    const validBannerImageRegex =
+      /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*(\?.*)?$/;
     if (!validBannerImageRegex.test(bannerImage)) {
       res.status(400);
       throw new Error(
@@ -178,7 +187,7 @@ const campaignUpdate = asyncHandler(async (req, res) => {
   }
 
   const updatedCampaign = await campaign.save();
-  res.status(200).json({
+  return res.status(200).json({
     status: 200,
     error: false,
     data: updatedCampaign,
@@ -259,7 +268,7 @@ const campaignPaginatedList = asyncHandler(async (req, res) => {
       .sort({ createdAt: -1 });
 
     // Respond with paginated data
-    res.status(200).json({
+    return res.status(200).json({
       status: 200,
       error: false,
       data: campaigns,
