@@ -4,10 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "../ui-custom/Logo";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const { isAuthenticated, user } = useAuth();
+
+  console.log("User:", user);
+  console.log("Is Authenticated:", isAuthenticated);
 
   useEffect(() => {
     const handleScroll = () => {

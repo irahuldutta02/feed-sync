@@ -16,6 +16,7 @@ api.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       console.error("API Error: Unauthorized (401)");
       localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
       window.location.href = "/login";
     }
     return Promise.reject(error);

@@ -8,7 +8,9 @@ import api from "@/services/api";
 const AuthContext = createContext(undefined);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(
+    JSON.parse(localStorage.getItem("user")) || null
+  );
   const [token, setToken] = useState(localStorage.getItem("authToken"));
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -17,7 +19,8 @@ export const AuthProvider = ({ children }) => {
   const setupAuth = (userData, authToken) => {
     setUser(userData);
     setToken(authToken);
-    if (authToken) {
+    if (authToken && userData) {
+      localStorage.setItem("user", JSON.stringify(userData));
       localStorage.setItem("authToken", authToken);
       api.defaults.headers.common["Authorization"] = `Bearer ${authToken}`;
     } else {
@@ -42,6 +45,13 @@ export const AuthProvider = ({ children }) => {
   // Load user data if token exists on initial load or refresh
   const loadUser = async () => {
     const storedToken = localStorage.getItem("authToken");
+
+    if (!storedToken) {
+      logout();
+      localStorage.removeItem("user"); // Clear user data if no token
+      localStorage.removeItem("authToken"); // Clear token
+    }
+
     if (storedToken && !user) {
       setIsLoading(true);
       setError(null);
