@@ -224,9 +224,14 @@ const Campaigns: React.FC = () => {
                                 }}
                               />
                               <div>
-                                {campaign.title}
+                                {campaign.title.length > 30
+                                  ? campaign.title.substring(0, 30) + "..."
+                                  : campaign.title}
                                 <div className="text-xs text-muted-foreground">
-                                  /c/{campaign.slug}
+                                  /c/
+                                  {campaign.slug.length > 20
+                                    ? campaign.slug.substring(0, 20) + "..."
+                                    : campaign.slug}
                                 </div>
                               </div>
                             </div>
