@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import CreateCampaignDialog from "@/components/campaigns/CreateCampaignDialog";
+import DeleteCampaignDialog from "@/components/campaigns/DeleteCampaignDialog";
+import EditCampaignDialog from "@/components/campaigns/EditCampaignDialog";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   CardFooter,
+  CardHeader,
 } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -17,6 +17,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -24,33 +31,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { formatDate, getCurrentTimeZone } from "@/lib/dateUtils";
+import api from "@/services/api";
+import { ApiResponse, Campaign } from "@/types/campaign";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import DashboardLayout from "@/components/layout/DashboardLayout";
-import {
+  ChevronLeft,
+  ChevronRight,
   Edit3,
   Eye,
+  Loader2,
   MoreHorizontal,
   Plus,
   Search,
   Star,
   Trash2,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import api from "@/services/api";
-import { Campaign, ApiResponse, PaginationData } from "@/types/campaign";
-import CreateCampaignDialog from "@/components/campaigns/CreateCampaignDialog";
-import EditCampaignDialog from "@/components/campaigns/EditCampaignDialog";
-import DeleteCampaignDialog from "@/components/campaigns/DeleteCampaignDialog";
-import { useAuth } from "@/contexts/AuthContext";
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 const Campaigns: React.FC = () => {
   // State for campaign list and pagination
@@ -145,16 +144,6 @@ const Campaigns: React.FC = () => {
   const handleEditClick = (campaign: Campaign) => {
     setSelectedCampaign(campaign);
     setEditDialogOpen(true);
-  };
-
-  // Format date for display
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
   };
 
   return (
@@ -266,7 +255,10 @@ const Campaigns: React.FC = () => {
                             </span>
                           </TableCell>
                           <TableCell>
-                            {formatDate(campaign.createdAt)}
+                            {formatDate(
+                              campaign.createdAt,
+                              getCurrentTimeZone()
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
                             <DropdownMenu>
