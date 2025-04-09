@@ -1,6 +1,5 @@
-
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,18 +12,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Github, Mail } from 'lucide-react';
+import { Github, Mail } from "lucide-react";
+import { Logo } from "@/components/ui-custom/Logo";
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast({
         title: "Error",
@@ -35,11 +35,11 @@ const Login = () => {
     }
 
     setIsLoading(true);
-    
+
     // Simulate login for UI demo
     setTimeout(() => {
       setIsLoading(false);
-      navigate('/dashboard');
+      navigate("/dashboard");
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in.",
@@ -49,11 +49,11 @@ const Login = () => {
 
   const handleSocialLogin = (provider: string) => {
     setIsLoading(true);
-    
+
     // Simulate social login for UI demo
     setTimeout(() => {
       setIsLoading(false);
-      navigate('/dashboard');
+      navigate("/dashboard");
       toast({
         title: "Welcome back!",
         description: `You have successfully logged in with ${provider}.`,
@@ -66,24 +66,24 @@ const Login = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link to="/" className="inline-block">
-            <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-brand-800 dark:from-brand-400 dark:to-brand-600">
-              FeedSync
-            </span>
+            <Logo />
           </Link>
         </div>
-        
+
         <Card className="w-full">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Welcome back</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">
+              Welcome back
+            </CardTitle>
             <CardDescription className="text-center">
               Log in to your account to continue
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Button 
+              <Button
                 className="w-full bg-[#4285F4] hover:bg-[#3367D6] text-white"
-                onClick={() => handleSocialLogin('Google')}
+                onClick={() => handleSocialLogin("Google")}
                 disabled={isLoading}
               >
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -107,18 +107,18 @@ const Login = () => {
                 </svg>
                 Continue with Google
               </Button>
-              
-              <Button 
+
+              <Button
                 variant="outline"
-                className="w-full" 
-                onClick={() => handleSocialLogin('GitHub')}
+                className="w-full"
+                onClick={() => handleSocialLogin("GitHub")}
                 disabled={isLoading}
               >
                 <Github className="mr-2 h-4 w-4" />
                 Continue with GitHub
               </Button>
             </div>
-            
+
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t border-border" />
@@ -129,12 +129,12 @@ const Login = () => {
                 </span>
               </div>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <div className="relative">
-                  <Label 
-                    htmlFor="email" 
+                  <Label
+                    htmlFor="email"
                     className="absolute left-3 -top-2.5 bg-card px-1 text-xs text-muted-foreground"
                   >
                     Email Address
@@ -150,11 +150,11 @@ const Login = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="relative">
-                  <Label 
-                    htmlFor="password" 
+                  <Label
+                    htmlFor="password"
                     className="absolute left-3 -top-2.5 bg-card px-1 text-xs text-muted-foreground"
                   >
                     Password
@@ -170,26 +170,32 @@ const Login = () => {
                   />
                 </div>
                 <div className="flex items-center justify-end">
-                  <Link to="/forgot-password" className="text-sm text-brand-600 hover:text-brand-700">
+                  <Link
+                    to="/forgot-password"
+                    className="text-sm text-brand-600 hover:text-brand-700"
+                  >
                     Forgot password?
                   </Link>
                 </div>
               </div>
-              
+
               <Button
                 type="submit"
                 className="w-full bg-brand-600 hover:bg-brand-700 text-white"
                 disabled={isLoading}
               >
-                {isLoading ? 'Logging in...' : 'Log in'}
+                {isLoading ? "Logging in..." : "Log in"}
               </Button>
             </form>
           </CardContent>
-          
+
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-center text-sm">
-              Don't have an account?{' '}
-              <Link to="/signup" className="text-brand-600 hover:text-brand-700 font-medium">
+              Don't have an account?{" "}
+              <Link
+                to="/signup"
+                className="text-brand-600 hover:text-brand-700 font-medium"
+              >
                 Sign up
               </Link>
             </div>

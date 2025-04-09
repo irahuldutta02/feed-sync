@@ -1,6 +1,5 @@
-
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,12 +13,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Github } from 'lucide-react';
+import { Github } from "lucide-react";
+import { Logo } from "@/components/ui-custom/Logo";
 
 const Signup = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -27,7 +27,7 @@ const Signup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name || !email || !password) {
       toast({
         title: "Error",
@@ -36,7 +36,7 @@ const Signup = () => {
       });
       return;
     }
-    
+
     if (!agreedToTerms) {
       toast({
         title: "Error",
@@ -47,11 +47,11 @@ const Signup = () => {
     }
 
     setIsLoading(true);
-    
+
     // Simulate signup for UI demo
     setTimeout(() => {
       setIsLoading(false);
-      navigate('/dashboard');
+      navigate("/dashboard");
       toast({
         title: "Account created!",
         description: "Welcome to FeedSync!",
@@ -61,11 +61,11 @@ const Signup = () => {
 
   const handleSocialSignup = (provider: string) => {
     setIsLoading(true);
-    
+
     // Simulate social signup for UI demo
     setTimeout(() => {
       setIsLoading(false);
-      navigate('/dashboard');
+      navigate("/dashboard");
       toast({
         title: "Account created!",
         description: `Welcome to FeedSync! You signed up with ${provider}.`,
@@ -78,24 +78,24 @@ const Signup = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link to="/" className="inline-block">
-            <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-brand-800 dark:from-brand-400 dark:to-brand-600">
-              FeedSync
-            </span>
+            <Logo />
           </Link>
         </div>
-        
+
         <Card className="w-full">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">
+              Create an account
+            </CardTitle>
             <CardDescription className="text-center">
               Sign up to start collecting feedback
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Button 
+              <Button
                 className="w-full bg-[#4285F4] hover:bg-[#3367D6] text-white"
-                onClick={() => handleSocialSignup('Google')}
+                onClick={() => handleSocialSignup("Google")}
                 disabled={isLoading}
               >
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -119,18 +119,18 @@ const Signup = () => {
                 </svg>
                 Sign up with Google
               </Button>
-              
-              <Button 
+
+              <Button
                 variant="outline"
-                className="w-full" 
-                onClick={() => handleSocialSignup('GitHub')}
+                className="w-full"
+                onClick={() => handleSocialSignup("GitHub")}
                 disabled={isLoading}
               >
                 <Github className="mr-2 h-4 w-4" />
                 Sign up with GitHub
               </Button>
             </div>
-            
+
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t border-border" />
@@ -141,12 +141,12 @@ const Signup = () => {
                 </span>
               </div>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <div className="relative">
-                  <Label 
-                    htmlFor="name" 
+                  <Label
+                    htmlFor="name"
                     className="absolute left-3 -top-2.5 bg-card px-1 text-xs text-muted-foreground"
                   >
                     Full Name
@@ -161,11 +161,11 @@ const Signup = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="relative">
-                  <Label 
-                    htmlFor="email" 
+                  <Label
+                    htmlFor="email"
                     className="absolute left-3 -top-2.5 bg-card px-1 text-xs text-muted-foreground"
                   >
                     Email Address
@@ -181,11 +181,11 @@ const Signup = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="relative">
-                  <Label 
-                    htmlFor="password" 
+                  <Label
+                    htmlFor="password"
                     className="absolute left-3 -top-2.5 bg-card px-1 text-xs text-muted-foreground"
                   >
                     Password
@@ -204,12 +204,14 @@ const Signup = () => {
                   Password must be at least 8 characters long
                 </p>
               </div>
-              
+
               <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="terms" 
+                <Checkbox
+                  id="terms"
                   checked={agreedToTerms}
-                  onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    setAgreedToTerms(checked as boolean)
+                  }
                   disabled={isLoading}
                 />
                 <label
@@ -217,30 +219,39 @@ const Signup = () => {
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
                   I agree to the{" "}
-                  <Link to="/terms" className="text-brand-600 hover:text-brand-700">
+                  <Link
+                    to="/terms"
+                    className="text-brand-600 hover:text-brand-700"
+                  >
                     terms of service
                   </Link>{" "}
                   and{" "}
-                  <Link to="/privacy" className="text-brand-600 hover:text-brand-700">
+                  <Link
+                    to="/privacy"
+                    className="text-brand-600 hover:text-brand-700"
+                  >
                     privacy policy
                   </Link>
                 </label>
               </div>
-              
+
               <Button
                 type="submit"
                 className="w-full bg-brand-600 hover:bg-brand-700 text-white"
                 disabled={isLoading}
               >
-                {isLoading ? 'Creating account...' : 'Create account'}
+                {isLoading ? "Creating account..." : "Create account"}
               </Button>
             </form>
           </CardContent>
-          
+
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-center text-sm">
-              Already have an account?{' '}
-              <Link to="/login" className="text-brand-600 hover:text-brand-700 font-medium">
+              Already have an account?{" "}
+              <Link
+                to="/login"
+                className="text-brand-600 hover:text-brand-700 font-medium"
+              >
                 Log in
               </Link>
             </div>
