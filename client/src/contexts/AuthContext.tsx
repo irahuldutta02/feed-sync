@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       try {
         api.defaults.headers.common["Authorization"] = `Bearer ${storedToken}`;
-        const response = await api.get("/auth/profile"); // Fetch user profile
+        const response = await api.get("/auth/profile");
         setupAuth(response.data, storedToken);
       } catch (err) {
         console.error("Failed to load user:", err);

@@ -1,4 +1,3 @@
-// client/src/services/api.js
 import { API_BASE_URL } from "@/config/server.config";
 import axios from "axios";
 
