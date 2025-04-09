@@ -30,6 +30,7 @@ import FeedbackListItem from "@/components/feedback/FeedbackListItem";
 import AnonymousFeedbackToggle from "@/components/feedback/AnonymousFeedbackToggle";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { toast } from "@/hooks/use-toast";
+import FooterCommon from "@/components/ui-custom/FooterCommon";
 
 const campaignData = {
   slug: "product-feedback",
@@ -273,266 +274,275 @@ const FeedbackForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-12">
-      <div
-        className="relative h-64 bg-cover bg-center bg-no-repeat shadow-md"
-        style={{
-          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${campaignData.bannerImage})`,
-        }}
-      >
-        <div className="absolute inset-0 flex flex-col justify-center items-center text-white p-6 text-center">
-          <h1 className="text-3xl font-bold mb-4">{campaign.title}</h1>
-          <p className="max-w-2xl text-white/90">{campaign.description}</p>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 sm:px-6 py-6 -mt-10 pt-20">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 order-2 lg:order-1">
-            <Card className="bg-card shadow-lg">
-              <CardHeader>
-                <Link
-                  to="/"
-                  className="flex items-center text-sm text-muted-foreground mb-2 hover:text-primary"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Return to Home
-                </Link>
-                <CardTitle>Submit Your Feedback</CardTitle>
-                <CardDescription>
-                  We value your opinion and would love to hear your thoughts
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <AnonymousFeedbackToggle
-                    isAnonymous={isAnonymous}
-                    onChange={setIsAnonymous}
-                  />
-
-                  {!isAnonymous && (
-                    <>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="name">Name</Label>
-                          <Input
-                            id="name"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            required={!isAnonymous}
-                            disabled={isAnonymous}
-                            className="bg-background"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="email">Email</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required={!isAnonymous}
-                            disabled={isAnonymous}
-                            className="bg-background"
-                          />
-                        </div>
-                      </div>
-                      <Separator />
-                    </>
-                  )}
-
-                  <div>
-                    <Label htmlFor="rating">Rating</Label>
-                    <div className="flex items-center space-x-1 my-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          className="p-1 focus:outline-none"
-                          onMouseEnter={() => setHoveredStar(star)}
-                          onMouseLeave={() => setHoveredStar(0)}
-                          onClick={() => setRating(star)}
-                        >
-                          <Star
-                            className={`h-6 w-6 ${
-                              star <= (hoveredStar || rating)
-                                ? "text-yellow-500 fill-yellow-500"
-                                : "text-muted-foreground"
-                            }`}
-                          />
-                        </button>
-                      ))}
-                      {rating > 0 && (
-                        <span className="ml-2 text-sm text-muted-foreground">
-                          {rating} star{rating !== 1 ? "s" : ""}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="feedback">Your Feedback</Label>
-                    <Textarea
-                      id="feedback"
-                      rows={5}
-                      placeholder="Share your thoughts and experiences..."
-                      value={feedback}
-                      onChange={(e) => setFeedback(e.target.value)}
-                      required
-                      className="resize-none bg-background"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="attachments">Attachments (optional)</Label>
-                    <Input
-                      id="attachments"
-                      type="file"
-                      onChange={handleFileChange}
-                      multiple
-                      accept="image/*"
-                      className="mt-1 bg-background"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      You can upload multiple image files (JPG, PNG, GIF)
-                    </p>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={rating === 0 || feedback.trim() === ""}
-                  >
-                    Submit Feedback
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+    <>
+      <div className="min-h-screen bg-background pb-12">
+        <div
+          className="relative h-64 bg-cover bg-center bg-no-repeat shadow-md"
+          style={{
+            backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${campaignData.bannerImage})`,
+          }}
+        >
+          <div className="absolute inset-0 flex flex-col justify-center items-center text-white p-6 text-center">
+            <h1 className="text-3xl font-bold mb-4">{campaign.title}</h1>
+            <p className="max-w-2xl text-white/90">{campaign.description}</p>
           </div>
+        </div>
 
-          <div className="lg:col-span-2 order-1 lg:order-2">
-            <Card className="bg-card shadow-lg">
-              <CardHeader className="pb-3">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                  <div>
-                    <CardTitle>Community Feedback</CardTitle>
-                    <CardDescription>
-                      See what others are saying about this
-                    </CardDescription>
-                  </div>
-                  <div className="flex mt-3 sm:mt-0">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center"
-                        >
-                          <Filter className="h-4 w-4 mr-2" />
-                          Filters
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-64 p-4 bg-popover">
+        <div className="container mx-auto px-4 sm:px-6 py-6 -mt-10 pt-20">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1 order-2 lg:order-1">
+              <Card className="bg-card shadow-lg">
+                <CardHeader>
+                  <Link
+                    to="/"
+                    className="flex items-center text-sm text-muted-foreground mb-2 hover:text-primary"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Return to Home
+                  </Link>
+                  <CardTitle>Submit Your Feedback</CardTitle>
+                  <CardDescription>
+                    We value your opinion and would love to hear your thoughts
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <AnonymousFeedbackToggle
+                      isAnonymous={isAnonymous}
+                      onChange={setIsAnonymous}
+                    />
+
+                    {!isAnonymous && (
+                      <>
                         <div className="space-y-4">
                           <div>
-                            <Label className="text-xs">Filter by Rating</Label>
-                            <Select
-                              value={ratingFilter}
-                              onValueChange={setRatingFilter}
-                            >
-                              <SelectTrigger className="bg-background">
-                                <SelectValue placeholder="All Ratings" />
-                              </SelectTrigger>
-                              <SelectContent className="bg-popover">
-                                <SelectItem value="all">All Ratings</SelectItem>
-                                <SelectItem value="5">5 Stars</SelectItem>
-                                <SelectItem value="4">4 Stars</SelectItem>
-                                <SelectItem value="3">3 Stars</SelectItem>
-                                <SelectItem value="2">2 Stars</SelectItem>
-                                <SelectItem value="1">1 Star</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <Label htmlFor="name">Name</Label>
+                            <Input
+                              id="name"
+                              value={name}
+                              onChange={(e) => setName(e.target.value)}
+                              required={!isAnonymous}
+                              disabled={isAnonymous}
+                              className="bg-background"
+                            />
                           </div>
                           <div>
-                            <Label className="text-xs">Sort By</Label>
-                            <Select value={sortBy} onValueChange={setSortBy}>
-                              <SelectTrigger className="bg-background">
-                                <SelectValue placeholder="Newest First" />
-                              </SelectTrigger>
-                              <SelectContent className="bg-popover">
-                                <SelectItem value="newest">
-                                  Newest First
-                                </SelectItem>
-                                <SelectItem value="oldest">
-                                  Oldest First
-                                </SelectItem>
-                                <SelectItem value="highest">
-                                  Highest Rated
-                                </SelectItem>
-                                <SelectItem value="lowest">
-                                  Lowest Rated
-                                </SelectItem>
-                                <SelectItem value="mostUpvoted">
-                                  Most Upvoted
-                                </SelectItem>
-                                <SelectItem value="mostDownvoted">
-                                  Most Downvoted
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <Label htmlFor="email">Email</Label>
+                            <Input
+                              id="email"
+                              type="email"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              required={!isAnonymous}
+                              disabled={isAnonymous}
+                              className="bg-background"
+                            />
                           </div>
                         </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pb-6">
-                <ScrollArea className="p-1">
-                  {displayedFeedback.length > 0 ? (
+                        <Separator />
+                      </>
+                    )}
+
                     <div>
-                      {displayedFeedback.map((feedback) => (
-                        <FeedbackListItem
-                          key={feedback.id}
-                          id={feedback.id}
-                          userName={feedback.userName}
-                          rating={feedback.rating}
-                          date={feedback.date}
-                          feedback={feedback.feedback}
-                          attachments={feedback.attachments}
-                          upvotes={feedback.upvotes}
-                          downvotes={feedback.downvotes}
-                        />
-                      ))}
-
-                      {loading && (
-                        <div className="py-4 text-center text-sm text-muted-foreground">
-                          Loading more feedback...
-                        </div>
-                      )}
-
-                      {!hasMore && displayedFeedback.length > 0 && (
-                        <div className="py-4 text-center text-sm text-muted-foreground">
-                          You've reached the end of the feedback
-                        </div>
-                      )}
+                      <Label htmlFor="rating">Rating</Label>
+                      <div className="flex items-center space-x-1 my-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            className="p-1 focus:outline-none"
+                            onMouseEnter={() => setHoveredStar(star)}
+                            onMouseLeave={() => setHoveredStar(0)}
+                            onClick={() => setRating(star)}
+                          >
+                            <Star
+                              className={`h-6 w-6 ${
+                                star <= (hoveredStar || rating)
+                                  ? "text-yellow-500 fill-yellow-500"
+                                  : "text-muted-foreground"
+                              }`}
+                            />
+                          </button>
+                        ))}
+                        {rating > 0 && (
+                          <span className="ml-2 text-sm text-muted-foreground">
+                            {rating} star{rating !== 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  ) : (
-                    <div className="py-12 text-center text-muted-foreground">
-                      {ratingFilter !== "all" ? (
-                        <>No feedback with the selected filters</>
-                      ) : (
-                        <>Be the first to share your feedback!</>
-                      )}
+
+                    <div>
+                      <Label htmlFor="feedback">Your Feedback</Label>
+                      <Textarea
+                        id="feedback"
+                        rows={5}
+                        placeholder="Share your thoughts and experiences..."
+                        value={feedback}
+                        onChange={(e) => setFeedback(e.target.value)}
+                        required
+                        className="resize-none bg-background"
+                      />
                     </div>
-                  )}
-                </ScrollArea>
-              </CardContent>
-            </Card>
+
+                    <div>
+                      <Label htmlFor="attachments">
+                        Attachments (optional)
+                      </Label>
+                      <Input
+                        id="attachments"
+                        type="file"
+                        onChange={handleFileChange}
+                        multiple
+                        accept="image/*"
+                        className="mt-1 bg-background"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        You can upload multiple image files (JPG, PNG, GIF)
+                      </p>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={rating === 0 || feedback.trim() === ""}
+                    >
+                      Submit Feedback
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="lg:col-span-2 order-1 lg:order-2">
+              <Card className="bg-card shadow-lg">
+                <CardHeader className="pb-3">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                    <div>
+                      <CardTitle>Community Feedback</CardTitle>
+                      <CardDescription>
+                        See what others are saying about this
+                      </CardDescription>
+                    </div>
+                    <div className="flex mt-3 sm:mt-0">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center"
+                          >
+                            <Filter className="h-4 w-4 mr-2" />
+                            Filters
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-4 bg-popover">
+                          <div className="space-y-4">
+                            <div>
+                              <Label className="text-xs">
+                                Filter by Rating
+                              </Label>
+                              <Select
+                                value={ratingFilter}
+                                onValueChange={setRatingFilter}
+                              >
+                                <SelectTrigger className="bg-background">
+                                  <SelectValue placeholder="All Ratings" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-popover">
+                                  <SelectItem value="all">
+                                    All Ratings
+                                  </SelectItem>
+                                  <SelectItem value="5">5 Stars</SelectItem>
+                                  <SelectItem value="4">4 Stars</SelectItem>
+                                  <SelectItem value="3">3 Stars</SelectItem>
+                                  <SelectItem value="2">2 Stars</SelectItem>
+                                  <SelectItem value="1">1 Star</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label className="text-xs">Sort By</Label>
+                              <Select value={sortBy} onValueChange={setSortBy}>
+                                <SelectTrigger className="bg-background">
+                                  <SelectValue placeholder="Newest First" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-popover">
+                                  <SelectItem value="newest">
+                                    Newest First
+                                  </SelectItem>
+                                  <SelectItem value="oldest">
+                                    Oldest First
+                                  </SelectItem>
+                                  <SelectItem value="highest">
+                                    Highest Rated
+                                  </SelectItem>
+                                  <SelectItem value="lowest">
+                                    Lowest Rated
+                                  </SelectItem>
+                                  <SelectItem value="mostUpvoted">
+                                    Most Upvoted
+                                  </SelectItem>
+                                  <SelectItem value="mostDownvoted">
+                                    Most Downvoted
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pb-6">
+                  <ScrollArea className="p-1">
+                    {displayedFeedback.length > 0 ? (
+                      <div>
+                        {displayedFeedback.map((feedback) => (
+                          <FeedbackListItem
+                            key={feedback.id}
+                            id={feedback.id}
+                            userName={feedback.userName}
+                            rating={feedback.rating}
+                            date={feedback.date}
+                            feedback={feedback.feedback}
+                            attachments={feedback.attachments}
+                            upvotes={feedback.upvotes}
+                            downvotes={feedback.downvotes}
+                          />
+                        ))}
+
+                        {loading && (
+                          <div className="py-4 text-center text-sm text-muted-foreground">
+                            Loading more feedback...
+                          </div>
+                        )}
+
+                        {!hasMore && displayedFeedback.length > 0 && (
+                          <div className="py-4 text-center text-sm text-muted-foreground">
+                            You've reached the end of the feedback
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="py-12 text-center text-muted-foreground">
+                        {ratingFilter !== "all" ? (
+                          <>No feedback with the selected filters</>
+                        ) : (
+                          <>Be the first to share your feedback!</>
+                        )}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+      <FooterCommon />
+    </>
   );
 };
 
