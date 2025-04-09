@@ -1,1 +1,1 @@
-# FeedSync - Modern Feedback Collection Platform
+# FeedSync - Frontend
