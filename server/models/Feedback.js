@@ -25,6 +25,10 @@ const FeedbackSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
     feedback: {
       type: String,
       required: true,

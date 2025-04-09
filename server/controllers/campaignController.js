@@ -1,6 +1,9 @@
 const asyncHandler = require("express-async-handler");
 const mongoose = require("mongoose");
 const Campaign = require("../models/Campaign");
+const VerifiedUser = require("../models/VerifiedUser");
+const User = require("../models/User");
+const Feedback = require("../models/Feedback");
 
 const campaignCreate = asyncHandler(async (req, res) => {
   const { title, description, link, bannerImage, allowAnonymous, status } =
@@ -272,9 +275,147 @@ const campaignPaginatedList = asyncHandler(async (req, res) => {
   }
 });
 
+const manageVerifiedUser = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { _id: userId } = req.user;
+
+  const { type, emails } = req.body;
+
+  if (!type || !["add", "remove"].includes(type)) {
+    res.status(400);
+    throw new Error("Invalid type. Must be 'add' or 'remove'.");
+  }
+
+  if (
+    !emails ||
+    !Array.isArray(emails) ||
+    emails.length === 0 ||
+    !emails.every((email) => typeof email === "string")
+  ) {
+    res.status(400);
+    throw new Error("Invalid emails. Must be a non-empty array of strings.");
+  }
+
+  if (emails.length > 100) {
+    res.status(400);
+    throw new Error("Too many emails. Maximum allowed is 100.");
+  }
+
+  const successEmails = [];
+  const failedEmails = [];
+
+  const campaign = await Campaign.findById(id);
+  if (!campaign) {
+    res.status(404);
+    throw new Error("Campaign not found");
+  }
+
+  if (campaign.createdBy.toString() !== userId.toString()) {
+    res.status(403);
+    throw new Error("User not authorized to manage this campaign");
+  }
+
+  emails.forEach(async (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      failedEmails.push(email);
+      return;
+    }
+
+    if (type === "add") {
+      const alreadyExists = VerifiedUser.findOne({
+        campaignId: id,
+        email,
+      });
+
+      if (alreadyExists) {
+        failedEmails.push(email);
+        return;
+      }
+
+      const verifiedUser = new VerifiedUser({
+        campaignId: id,
+        email,
+      });
+      await verifiedUser.save(async (err) => {
+        if (err) {
+          failedEmails.push(email);
+        } else {
+          successEmails.push(email);
+
+          const user = await User.findOne({ email });
+
+          if (user) {
+            const feedBacksByEmail = await Feedback.find({
+              createdBy: user._id,
+              campaignId: id,
+            });
+
+            if (feedBacksByEmail && feedBacksByEmail.length > 0) {
+              feedBacksByEmail.forEach(async (feedback) => {
+                feedback.isVerified = true;
+                await feedback.save();
+              });
+            }
+          }
+        }
+      });
+    } else if (type === "remove") {
+      const removedUser = await VerifiedUser.findOneAndDelete({
+        campaignId: id,
+        email,
+      });
+      if (removedUser) {
+        successEmails.push(email);
+
+        const user = await User.findOne({ email });
+
+        if (user) {
+          const feedBacksByEmail = await Feedback.find({
+            createdBy: user._id,
+            campaignId: id,
+          });
+
+          if (feedBacksByEmail && feedBacksByEmail.length > 0) {
+            feedBacksByEmail.forEach(async (feedback) => {
+              feedback.isVerified = false;
+              await feedback.save();
+            });
+          }
+        }
+      } else {
+        failedEmails.push(email);
+      }
+    }
+  });
+
+  if (successEmails.length > 0) {
+    res.status(200).json({
+      status: 200,
+      error: false,
+      message: `${type === "add" ? "Added" : "Removed"} successfully`,
+      data: {
+        successEmails,
+        failedEmails,
+      },
+    });
+  } else {
+    res.status(200).json({
+      status: 200,
+      error: false,
+      message: `No emails ${type === "add" ? "added" : "removed"}`,
+      data: {
+        successEmails,
+        failedEmails,
+      },
+    });
+  }
+});
+
 module.exports = {
   campaignCreate,
   campaignUpdate,
   campaignDetail,
   campaignPaginatedList,
+  manageVerifiedUser,
 };

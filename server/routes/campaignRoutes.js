@@ -1,10 +1,19 @@
 const express = require("express");
+const {
+  manageVerifiedUser,
+  campaignCreate,
+  campaignUpdate,
+  campaignDetail,
+  campaignPaginatedList,
+} = require("../controllers/campaignController");
+const { protect } = require("../middleware/authMiddleware");
 
 const campaignRouter = express.Router();
 
-router.post("/create", protect, campaignCreate);
-router.post("/update/:id", protect, campaignUpdate);
-router.get("/detail/:id", campaignDetail);
-router.get("/paginated_list/", campaignPaginatedList);
+campaignRouter.post("/create", protect, campaignCreate);
+campaignRouter.post("/update/:id", protect, campaignUpdate);
+campaignRouter.get("/detail/:id", campaignDetail);
+campaignRouter.get("/paginated_list/", campaignPaginatedList);
+campaignRouter.get("/manage_verified_user/:id", protect, manageVerifiedUser);
 
 module.exports = campaignRouter;
