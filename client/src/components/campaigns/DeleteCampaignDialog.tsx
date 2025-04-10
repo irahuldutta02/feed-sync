@@ -37,7 +37,9 @@ const DeleteCampaignDialog: React.FC<DeleteCampaignDialogProps> = ({
 
     setIsDeleting(true);
     try {
-      const response = await api.delete(`/campaign/delete/${campaign._id}`);
+      const response = await api.put(
+        `/campaign/mark_campaign_deleted/${campaign._id}`
+      );
 
       if (response.data.error === false) {
         toast({

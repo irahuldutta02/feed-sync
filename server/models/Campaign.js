@@ -42,7 +42,7 @@ const CampaignSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Draft", "Active", "Inactive"],
+      enum: ["Draft", "Active", "Inactive", "Deleted"],
       default: "Draft",
     },
   },

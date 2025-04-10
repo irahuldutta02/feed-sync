@@ -28,7 +28,7 @@ import { Logo } from "@/components/ui-custom/Logo";
 const FeedbackForm = () => {
   const { slug } = useParams();
 
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -54,7 +54,9 @@ const FeedbackForm = () => {
         const data = response?.data;
         setCampaign(data?.data);
       } catch (err) {
-        setError(`Failed to load campaign details: ${err.message}`);
+        setError(
+          err?.response?.data?.message || "Failed to load campaign details"
+        );
       } finally {
         setLoading(false);
       }
@@ -112,7 +114,8 @@ const FeedbackForm = () => {
       } catch (err) {
         toast({
           title: "Error",
-          description: `Failed to load feedbacks ${err?.message}`,
+          description:
+            err?.response?.data?.message || "Failed to load campaign details",
           variant: "destructive",
         });
         setFeedbackLoading(false);
@@ -169,6 +172,16 @@ const FeedbackForm = () => {
     isOwner = true;
   }
 
+  let showForm = false;
+
+  if (isAuthenticated) {
+    showForm = true;
+  }
+
+  if (!isAuthenticated && campaign?.allowAnonymous) {
+    showForm = true;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -191,7 +204,11 @@ const FeedbackForm = () => {
     );
   }
 
-  if (!error && campaign && campaign?.status === "Draft") {
+  if (
+    !error &&
+    campaign &&
+    (campaign?.status === "Draft" || campaign?.status === "Deleted")
+  ) {
     // show campaign not found
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
@@ -294,113 +311,88 @@ const FeedbackForm = () => {
                       )}
 
                       {!isOwner && campaign?.status === "Active" && (
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                          {campaign?.allowAnonymous && (
-                            <AnonymousFeedbackToggle
-                              isAnonymous={isAnonymous}
-                              onChange={setIsAnonymous}
-                            />
-                          )}
+                        <>
+                          {showForm && (
+                            <form onSubmit={handleSubmit} className="space-y-6">
+                              {isAuthenticated && campaign?.allowAnonymous && (
+                                <AnonymousFeedbackToggle
+                                  isAnonymous={isAnonymous}
+                                  onChange={setIsAnonymous}
+                                />
+                              )}
 
-                          {!isAnonymous && (
-                            <>
-                              <div className="space-y-4">
-                                <div>
-                                  <Label htmlFor="name">Name</Label>
-                                  <Input
-                                    id="name"
-                                    value={user?.name}
-                                    required={!isAnonymous}
-                                    disabled={isAnonymous}
-                                    className="bg-background"
-                                    readOnly
-                                  />
-                                </div>
-                                <div>
-                                  <Label htmlFor="email">Email</Label>
-                                  <Input
-                                    id="email"
-                                    type="email"
-                                    value={user?.email}
-                                    required={!isAnonymous}
-                                    disabled={isAnonymous}
-                                    className="bg-background"
-                                    readOnly
-                                  />
+                              <div>
+                                <Label htmlFor="rating">Rating</Label>
+                                <div className="flex items-center space-x-1 my-2">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <button
+                                      key={star}
+                                      type="button"
+                                      className="p-1 focus:outline-none"
+                                      onMouseEnter={() => setHoveredStar(star)}
+                                      onMouseLeave={() => setHoveredStar(0)}
+                                      onClick={() => setRating(star)}
+                                    >
+                                      <Star
+                                        className={`h-6 w-6 ${
+                                          star <= (hoveredStar || rating)
+                                            ? "text-yellow-500 fill-yellow-500"
+                                            : "text-muted-foreground"
+                                        }`}
+                                      />
+                                    </button>
+                                  ))}
+                                  {rating > 0 && (
+                                    <span className="ml-2 text-sm text-muted-foreground">
+                                      {rating} star{rating !== 1 ? "s" : ""}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
-                              <Separator />
-                            </>
+
+                              <div>
+                                <Label htmlFor="feedback">Your Feedback</Label>
+                                <Textarea
+                                  id="feedback"
+                                  rows={5}
+                                  placeholder="Share your thoughts and experiences..."
+                                  value={feedback}
+                                  onChange={(e) => setFeedback(e.target.value)}
+                                  required
+                                  className="resize-none bg-background"
+                                />
+                              </div>
+
+                              <div>
+                                <Label htmlFor="attachments">
+                                  Attachments (optional)
+                                </Label>
+                                <Input
+                                  id="attachments"
+                                  type="file"
+                                  onChange={handleFileChange}
+                                  multiple
+                                  accept="image/*"
+                                  className="mt-1 bg-background"
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  You can upload multiple image files (JPG, PNG,
+                                  GIF)
+                                </p>
+                              </div>
+
+                              <Button
+                                type="submit"
+                                className="w-full"
+                                disabled={
+                                  rating === 0 || feedback.trim() === ""
+                                }
+                              >
+                                Submit Feedback
+                              </Button>
+                            </form>
                           )}
-
-                          <div>
-                            <Label htmlFor="rating">Rating</Label>
-                            <div className="flex items-center space-x-1 my-2">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <button
-                                  key={star}
-                                  type="button"
-                                  className="p-1 focus:outline-none"
-                                  onMouseEnter={() => setHoveredStar(star)}
-                                  onMouseLeave={() => setHoveredStar(0)}
-                                  onClick={() => setRating(star)}
-                                >
-                                  <Star
-                                    className={`h-6 w-6 ${
-                                      star <= (hoveredStar || rating)
-                                        ? "text-yellow-500 fill-yellow-500"
-                                        : "text-muted-foreground"
-                                    }`}
-                                  />
-                                </button>
-                              ))}
-                              {rating > 0 && (
-                                <span className="ml-2 text-sm text-muted-foreground">
-                                  {rating} star{rating !== 1 ? "s" : ""}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          <div>
-                            <Label htmlFor="feedback">Your Feedback</Label>
-                            <Textarea
-                              id="feedback"
-                              rows={5}
-                              placeholder="Share your thoughts and experiences..."
-                              value={feedback}
-                              onChange={(e) => setFeedback(e.target.value)}
-                              required
-                              className="resize-none bg-background"
-                            />
-                          </div>
-
-                          <div>
-                            <Label htmlFor="attachments">
-                              Attachments (optional)
-                            </Label>
-                            <Input
-                              id="attachments"
-                              type="file"
-                              onChange={handleFileChange}
-                              multiple
-                              accept="image/*"
-                              className="mt-1 bg-background"
-                            />
-                            <p className="text-xs text-muted-foreground mt-1">
-                              You can upload multiple image files (JPG, PNG,
-                              GIF)
-                            </p>
-                          </div>
-
-                          <Button
-                            type="submit"
-                            className="w-full"
-                            disabled={rating === 0 || feedback.trim() === ""}
-                          >
-                            Submit Feedback
-                          </Button>
-                        </form>
+                        </>
                       )}
                     </CardContent>
                   </Card>
@@ -493,7 +485,7 @@ const FeedbackForm = () => {
                             attachments={feedback.attachments}
                             upvotes={feedback.upvotes}
                             downvotes={feedback.downvotes}
-                            // isVerified={feedback.isVerified}
+                            isVerified={feedback.isVerified}
                           />
                         ))}
                       </div>

@@ -101,7 +101,7 @@ const campaignCreate = asyncHandler(async (req, res, next) => {
       throw new Error("Unable to create campaign. Please try again.");
     }
   } catch (error) {
-    res.status(500);
+    res.status(res?.statusCode ?? 500);
     throw error;
   }
 });
@@ -199,7 +199,7 @@ const campaignUpdate = asyncHandler(async (req, res, next) => {
       data: updatedCampaign,
     });
   } catch (error) {
-    res.status(500);
+    res.status(res?.statusCode ?? 500);
     throw error;
   }
 });
@@ -218,7 +218,7 @@ const campaignDetail = asyncHandler(async (req, res) => {
       );
     }
 
-    if (!campaign) {
+    if (!campaign || campaign.status === "Deleted") {
       res.status(404);
       throw new Error("Campaign not found");
     }
@@ -229,7 +229,7 @@ const campaignDetail = asyncHandler(async (req, res) => {
       data: campaign,
     });
   } catch (error) {
-    res.status(500);
+    res.status(res?.statusCode ?? 500);
     throw error;
   }
 });
@@ -261,8 +261,8 @@ const campaignPaginatedList = asyncHandler(async (req, res) => {
       ["Draft", "Active", "Inactive"].includes(statusFilter)
     ) {
       queryFilter.status = statusFilter;
-    } else if (statusFilter) {
-      console.warn(`Invalid status filter ignored: ${statusFilter}`);
+    } else {
+      queryFilter.status = { $ne: "Deleted" };
     }
 
     // Filter by createdBy
@@ -297,7 +297,7 @@ const campaignPaginatedList = asyncHandler(async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500);
+    res.status(res?.statusCode ?? 500);
     throw error;
   }
 });
@@ -439,7 +439,46 @@ const manageVerifiedUser = asyncHandler(async (req, res) => {
       });
     }
   } catch (error) {
-    res.status(500);
+    res.status(res?.statusCode ?? 500);
+    throw error;
+  }
+});
+
+const markCampaignDeleted = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { _id: userId } = req.user;
+
+    // Validate campaign ID format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400);
+      throw new Error("Invalid campaign ID format");
+    }
+
+    const campaign = await Campaign.findById(id);
+
+    if (!campaign) {
+      res.status(404);
+      throw new Error("Campaign not found");
+    }
+
+    // Check if the user is authorized to delete the campaign
+    if (campaign.createdBy.toString() !== userId.toString()) {
+      res.status(403);
+      throw new Error("User not authorized to delete this campaign");
+    }
+
+    // Mark the campaign as deleted
+    campaign.status = "Deleted";
+    await campaign.save();
+
+    return res.status(200).json({
+      status: 200,
+      error: false,
+      message: "Campaign marked as deleted successfully",
+    });
+  } catch (error) {
+    res.status(res?.statusCode ?? 500);
     throw error;
   }
 });
@@ -450,4 +489,5 @@ module.exports = {
   campaignDetail,
   campaignPaginatedList,
   manageVerifiedUser,
+  markCampaignDeleted,
 };

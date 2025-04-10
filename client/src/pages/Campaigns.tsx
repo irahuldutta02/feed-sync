@@ -46,6 +46,7 @@ import {
   MoreHorizontal,
   Plus,
   Search,
+  Share,
   Star,
   Trash2,
 } from "lucide-react";
@@ -295,6 +296,21 @@ const Campaigns: React.FC = () => {
                                 >
                                   <Edit3 className="h-4 w-4 mr-2" />
                                   Edit Campaign
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(
+                                      `${window.location.origin}/c/${campaign.slug}`
+                                    );
+                                    toast({
+                                      title: "Campaign link copied!",
+                                      description: "You can now share it.",
+                                      variant: "default",
+                                    });
+                                  }}
+                                >
+                                  <Share className="h-4 w-4 mr-2" />
+                                  Share Campaign
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   className="text-red-600 focus:text-red-600"
