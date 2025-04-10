@@ -1,174 +1,40 @@
-import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { ChevronLeft, Filter, Star } from "lucide-react";
+import FeedbackListItem from "@/components/feedback/FeedbackListItem";
+import FooterCommon from "@/components/ui-custom/FooterCommon";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import FeedbackListItem from "@/components/feedback/FeedbackListItem";
-import AnonymousFeedbackToggle from "@/components/feedback/AnonymousFeedbackToggle";
-import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import FooterCommon from "@/components/ui-custom/FooterCommon";
-
-const campaignData = {
-  slug: "product-feedback",
-  title: "Product Feedback Survey",
-  bannerImage:
-    "https://images.unsplash.com/photo-1576267423445-b2e0074d68a4?auto=format&fit=crop&w=1080",
-  description:
-    "We value your feedback on our products. Please share your thoughts to help us improve and better serve your needs.",
-  created: "2023-05-15",
-  owner: "FeedSync Team",
-};
-
-const feedbackData = [
-  {
-    id: 1,
-    userName: "Sarah Johnson",
-    rating: 5,
-    feedback:
-      "I love the new dashboard design! It's much easier to navigate and the reporting features are fantastic.",
-    date: "2023-07-28",
-    attachments: [
-      "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158",
-    ],
-    upvotes: 12,
-    downvotes: 2,
-  },
-  {
-    id: 2,
-    userName: "Michael Chen",
-    rating: 4,
-    feedback:
-      "Overall great experience, but I did notice some lag when loading large datasets. The UI is very intuitive though, and I appreciate the new filtering options.",
-    date: "2023-07-26",
-    attachments: [],
-    upvotes: 8,
-    downvotes: 1,
-  },
-  {
-    id: 3,
-    userName: "Anonymous",
-    rating: 3,
-    feedback:
-      "The new website looks good, but I'm having trouble finding some of the features that were easier to access in the old design. Maybe consider adding a comprehensive site map or improving the search functionality.",
-    date: "2023-07-25",
-    attachments: [
-      "https://images.unsplash.com/photo-1587614382346-4ec70e388b28",
-    ],
-    upvotes: 5,
-    downvotes: 3,
-  },
-  {
-    id: 4,
-    userName: "David Williams",
-    rating: 2,
-    feedback:
-      "I'm experiencing frequent crashes when trying to use the image upload feature. Also, the notification system seems to be delayed. I've attached screenshots of the error messages I'm receiving.",
-    date: "2023-07-24",
-    attachments: [
-      "https://images.unsplash.com/photo-1593642532400-2682810df593",
-    ],
-    upvotes: 0,
-    downvotes: 0,
-  },
-  {
-    id: 5,
-    userName: "Anonymous",
-    rating: 5,
-    feedback:
-      "The customer support team was incredibly helpful and resolved my issue quickly. The follow-up was also appreciated and thorough.",
-    date: "2023-07-22",
-    attachments: [],
-    upvotes: 0,
-    downvotes: 0,
-  },
-  {
-    id: 6,
-    userName: "James Wilson",
-    rating: 4,
-    feedback:
-      "The new collaborative editing feature is a game-changer for our team. It would be great if there was an option to see who is currently viewing a document in real-time.",
-    date: "2023-07-20",
-    attachments: [],
-    upvotes: 0,
-    downvotes: 0,
-  },
-  {
-    id: 7,
-    userName: "Anonymous",
-    rating: 5,
-    feedback:
-      "Great product, intuitive interface, and excellent customer support. Would highly recommend!",
-    date: "2023-07-18",
-    attachments: [],
-    upvotes: 0,
-    downvotes: 0,
-  },
-  {
-    id: 8,
-    userName: "Emma Thompson",
-    rating: 3,
-    feedback:
-      "The mobile app needs improvement. It crashes occasionally and some features don't work as expected.",
-    date: "2023-07-16",
-    attachments: [
-      "https://images.unsplash.com/photo-1598128558393-70ff21433be0",
-    ],
-    upvotes: 0,
-    downvotes: 0,
-  },
-  {
-    id: 9,
-    userName: "Robert Davis",
-    rating: 4,
-    feedback:
-      "The new UI is much better, but there are still some minor bugs that need to be fixed.",
-    date: "2023-07-14",
-    attachments: [],
-    upvotes: 0,
-    downvotes: 0,
-  },
-  {
-    id: 10,
-    userName: "Jennifer Lee",
-    rating: 5,
-    feedback:
-      "I've been using this product for years, and it just keeps getting better. The latest update is fantastic!",
-    date: "2023-07-12",
-    attachments: [],
-    upvotes: 0,
-    downvotes: 0,
-  },
-];
-
-const ITEMS_PER_PAGE = 3;
+import api from "@/services/api";
+import { Label } from "@/components/ui/label";
+import { formatDistanceToNow } from "date-fns";
+import { Link as LinkIcon, Share, Star } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import AnonymousFeedbackToggle from "@/components/feedback/AnonymousFeedbackToggle";
+import { Logo } from "@/components/ui-custom/Logo";
 
 const FeedbackForm = () => {
-  const { slug } = useParams<{ slug: string }>();
-  const campaign = campaignData;
+  const { slug } = useParams();
+
+  const { user } = useAuth();
+  const [campaign, setCampaign] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [feedbackLoading, setFeedbackLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("overview");
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -178,74 +44,92 @@ const FeedbackForm = () => {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [hoveredStar, setHoveredStar] = useState(0);
 
-  const [ratingFilter, setRatingFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("newest");
-
-  const { page, loading, hasMore, setHasMore } = useInfiniteScroll({
-    initialPage: 1,
-  });
-
-  const [displayedFeedback, setDisplayedFeedback] = useState<
-    typeof feedbackData
-  >([]);
-
-  const getFilteredFeedback = () => {
-    let filtered = [...feedbackData];
-
-    if (ratingFilter !== "all") {
-      filtered = filtered.filter(
-        (item) => item.rating === parseInt(ratingFilter)
-      );
-    }
-
-    if (sortBy === "newest") {
-      filtered.sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-      );
-    } else if (sortBy === "oldest") {
-      filtered.sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
-    } else if (sortBy === "highest") {
-      filtered.sort((a, b) => b.rating - a.rating);
-    } else if (sortBy === "lowest") {
-      filtered.sort((a, b) => a.rating - b.rating);
-    } else if (sortBy === "mostUpvoted") {
-      filtered.sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0));
-    } else if (sortBy === "mostDownvoted") {
-      filtered.sort((a, b) => (b.downvotes || 0) - (a.downvotes || 0));
-    }
-
-    return filtered;
-  };
-
-  const filteredFeedback = getFilteredFeedback();
-
   useEffect(() => {
-    const filtered = getFilteredFeedback();
+    const fetchCampaign = async () => {
+      try {
+        setLoading(true);
+        await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    const startIndex = 0;
-    const endIndex = page * ITEMS_PER_PAGE;
-    const currentPageItems = filtered.slice(startIndex, endIndex);
+        const response = await api.get(`/campaign/detail/${slug}`);
+        const data = response?.data;
+        setCampaign(data?.data);
+      } catch (err) {
+        setError(`Failed to load campaign details: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    setDisplayedFeedback(currentPageItems);
+    const fetchFeedbacks = async () => {
+      try {
+        setFeedbackLoading(true);
 
-    if (currentPageItems.length >= filtered.length) {
-      setHasMore(false);
-    } else {
-      setHasMore(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, ratingFilter, sortBy]);
+        const mockFeedbacks = [
+          {
+            id: 1,
+            userName: "Sarah Johnson",
+            rating: 5,
+            feedback:
+              "I love the new dashboard design! It's much easier to navigate and the reporting features are fantastic.",
+            date: "2023-07-28T15:30:00Z",
+            attachments: [
+              "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158",
+            ],
+            upvotes: 12,
+            downvotes: 2,
+            isVerified: true,
+          },
+          {
+            id: 2,
+            userName: "Michael Chen",
+            rating: 4,
+            feedback:
+              "Overall great experience, but I did notice some lag when loading large datasets. The UI is very intuitive though, and I appreciate the new filtering options.",
+            date: "2023-07-26T09:15:00Z",
+            attachments: [],
+            upvotes: 8,
+            downvotes: 1,
+            isVerified: true,
+          },
+          {
+            id: 3,
+            userName: "Anonymous",
+            rating: 3,
+            feedback:
+              "The new website looks good, but I'm having trouble finding some of the features that were easier to access in the old design. Maybe consider adding a comprehensive site map or improving the search functionality.",
+            date: "2023-07-25T14:20:00Z",
+            attachments: [
+              "https://images.unsplash.com/photo-1587614382346-4ec70e388b28",
+            ],
+            upvotes: 5,
+            downvotes: 3,
+            isVerified: false,
+          },
+        ];
 
-  useEffect(() => {
-    setDisplayedFeedback([]);
-  }, [ratingFilter, sortBy]);
+        setFeedbacks(mockFeedbacks);
+        setFeedbackLoading(false);
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: `Failed to load feedbacks ${err?.message}`,
+          variant: "destructive",
+        });
+        setFeedbackLoading(false);
+      }
+    };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFiles(e.target.files);
-    }
+    fetchCampaign();
+    fetchFeedbacks();
+  }, [slug, user]);
+
+  const copyFeedbackLink = () => {
+    const url = `${window.location.origin}/c/${campaign.slug}`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "Link copied",
+      description: "Feedback form link copied to clipboard",
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -273,13 +157,59 @@ const FeedbackForm = () => {
     setIsAnonymous(false);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFiles(e.target.files);
+    }
+  };
+
+  let isOwner = false;
+
+  if (campaign?.createdBy?._id === user?._id) {
+    isOwner = true;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse">
+          <Logo />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !campaign) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <h1 className="text-2xl font-bold mb-4">Campaign not found</h1>
+        <p className="text-muted-foreground mb-6">
+          {error ||
+            "The campaign you're looking for doesn't exist or has been removed."}
+        </p>
+      </div>
+    );
+  }
+
+  if (!error && campaign && campaign?.status === "Draft") {
+    // show campaign not found
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <h1 className="text-2xl font-bold mb-4">Campaign not found</h1>
+        <p className="text-muted-foreground mb-6">
+          {"The campaign you're looking for doesn't exist or has been removed."}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="min-h-screen bg-background pb-12">
         <div
           className="relative h-64 bg-cover bg-center bg-no-repeat shadow-md"
           style={{
-            backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${campaignData.bannerImage})`,
+            backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${campaign.bannerImage})`,
           }}
         >
           <div className="absolute inset-0 flex flex-col justify-center items-center text-white p-6 text-center">
@@ -289,217 +219,270 @@ const FeedbackForm = () => {
         </div>
 
         <div className="container mx-auto px-4 sm:px-6 py-6 -mt-10 pt-20">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1 order-2 lg:order-1">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="feedbacks">Feedbacks</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 ">
+                <div className="lg:col-span-2 relative">
+                  <Card className="bg-card shadow-lg">
+                    <CardHeader>
+                      <CardTitle>{campaign.title}</CardTitle>
+                      <CardDescription>
+                        {formatDistanceToNow(new Date(campaign.createdAt), {
+                          addSuffix: true,
+                        })}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">
+                          Description
+                        </h3>
+                        <p className="mt-1">{campaign.description}</p>
+                      </div>
+
+                      {campaign.link && (
+                        <div>
+                          <h3 className="text-sm font-medium text-muted-foreground">
+                            Related Link
+                          </h3>
+                          <a
+                            href={campaign.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1 text-primary hover:underline flex items-center"
+                          >
+                            <LinkIcon className="h-4 w-4 mr-1" />
+                            {campaign.link}
+                          </a>
+                        </div>
+                      )}
+
+                      <div className="absolute top-0 right-6">
+                        <div className="flex items-center mt-1">
+                          <Button
+                            size="icon"
+                            onClick={copyFeedbackLink}
+                            className="ml-2"
+                          >
+                            <Share className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* feedback form goes here */}
+                      {!isOwner && campaign?.status === "Inactive" && (
+                        <div className="py-8 text-center">
+                          <div className="bg-yellow-500/10 text-yellow-500 p-4 rounded-md mb-4">
+                            <h3 className="font-medium text-lg mb-2">
+                              Feedback Closed
+                            </h3>
+                            <p>
+                              This campaign is no longer accepting feedback
+                              submissions.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {!isOwner && campaign?.status === "Active" && (
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                          {campaign?.allowAnonymous && (
+                            <AnonymousFeedbackToggle
+                              isAnonymous={isAnonymous}
+                              onChange={setIsAnonymous}
+                            />
+                          )}
+
+                          {!isAnonymous && (
+                            <>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label htmlFor="name">Name</Label>
+                                  <Input
+                                    id="name"
+                                    value={user?.name}
+                                    required={!isAnonymous}
+                                    disabled={isAnonymous}
+                                    className="bg-background"
+                                    readOnly
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="email">Email</Label>
+                                  <Input
+                                    id="email"
+                                    type="email"
+                                    value={user?.email}
+                                    required={!isAnonymous}
+                                    disabled={isAnonymous}
+                                    className="bg-background"
+                                    readOnly
+                                  />
+                                </div>
+                              </div>
+                              <Separator />
+                            </>
+                          )}
+
+                          <div>
+                            <Label htmlFor="rating">Rating</Label>
+                            <div className="flex items-center space-x-1 my-2">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                  key={star}
+                                  type="button"
+                                  className="p-1 focus:outline-none"
+                                  onMouseEnter={() => setHoveredStar(star)}
+                                  onMouseLeave={() => setHoveredStar(0)}
+                                  onClick={() => setRating(star)}
+                                >
+                                  <Star
+                                    className={`h-6 w-6 ${
+                                      star <= (hoveredStar || rating)
+                                        ? "text-yellow-500 fill-yellow-500"
+                                        : "text-muted-foreground"
+                                    }`}
+                                  />
+                                </button>
+                              ))}
+                              {rating > 0 && (
+                                <span className="ml-2 text-sm text-muted-foreground">
+                                  {rating} star{rating !== 1 ? "s" : ""}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div>
+                            <Label htmlFor="feedback">Your Feedback</Label>
+                            <Textarea
+                              id="feedback"
+                              rows={5}
+                              placeholder="Share your thoughts and experiences..."
+                              value={feedback}
+                              onChange={(e) => setFeedback(e.target.value)}
+                              required
+                              className="resize-none bg-background"
+                            />
+                          </div>
+
+                          <div>
+                            <Label htmlFor="attachments">
+                              Attachments (optional)
+                            </Label>
+                            <Input
+                              id="attachments"
+                              type="file"
+                              onChange={handleFileChange}
+                              multiple
+                              accept="image/*"
+                              className="mt-1 bg-background"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              You can upload multiple image files (JPG, PNG,
+                              GIF)
+                            </p>
+                          </div>
+
+                          <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={rating === 0 || feedback.trim() === ""}
+                          >
+                            Submit Feedback
+                          </Button>
+                        </form>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="lg:col-span-1">
+                  <Card className="bg-card shadow-lg">
+                    <CardHeader>
+                      <CardTitle>Campaign Stats</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">
+                          Average Rating
+                        </span>
+                        <div className="flex items-center">
+                          <Star className="h-5 w-5 text-yellow-500 fill-yellow-500 mr-1" />
+                          <span className="font-medium">
+                            {campaign.averageRating.toFixed(1)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">
+                          Total Feedbacks
+                        </span>
+                        <span className="font-medium">
+                          {campaign?.feedbackCount}
+                        </span>
+                      </div>
+
+                      <Separator />
+
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                          Created By
+                        </h3>
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
+                            <img
+                              src={campaign?.createdBy?.avatarUrl}
+                              alt={campaign.createdBy.name}
+                              className="rounded-full"
+                            />
+                          </div>
+                          <div className="ml-3">
+                            <p className="font-medium">
+                              {campaign.createdBy.name}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {campaign.createdBy.email}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="feedbacks">
               <Card className="bg-card shadow-lg">
                 <CardHeader>
-                  <Link
-                    to="/"
-                    className="flex items-center text-sm text-muted-foreground mb-2 hover:text-primary"
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Return to Home
-                  </Link>
-                  <CardTitle>Submit Your Feedback</CardTitle>
+                  <CardTitle>Feedback Submissions</CardTitle>
                   <CardDescription>
-                    We value your opinion and would love to hear your thoughts
+                    All feedback received for this campaign
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <AnonymousFeedbackToggle
-                      isAnonymous={isAnonymous}
-                      onChange={setIsAnonymous}
-                    />
-
-                    {!isAnonymous && (
-                      <>
-                        <div className="space-y-4">
-                          <div>
-                            <Label htmlFor="name">Name</Label>
-                            <Input
-                              id="name"
-                              value={name}
-                              onChange={(e) => setName(e.target.value)}
-                              required={!isAnonymous}
-                              disabled={isAnonymous}
-                              className="bg-background"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                              id="email"
-                              type="email"
-                              value={email}
-                              onChange={(e) => setEmail(e.target.value)}
-                              required={!isAnonymous}
-                              disabled={isAnonymous}
-                              className="bg-background"
-                            />
-                          </div>
-                        </div>
-                        <Separator />
-                      </>
-                    )}
-
-                    <div>
-                      <Label htmlFor="rating">Rating</Label>
-                      <div className="flex items-center space-x-1 my-2">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <button
-                            key={star}
-                            type="button"
-                            className="p-1 focus:outline-none"
-                            onMouseEnter={() => setHoveredStar(star)}
-                            onMouseLeave={() => setHoveredStar(0)}
-                            onClick={() => setRating(star)}
-                          >
-                            <Star
-                              className={`h-6 w-6 ${
-                                star <= (hoveredStar || rating)
-                                  ? "text-yellow-500 fill-yellow-500"
-                                  : "text-muted-foreground"
-                              }`}
-                            />
-                          </button>
-                        ))}
-                        {rating > 0 && (
-                          <span className="ml-2 text-sm text-muted-foreground">
-                            {rating} star{rating !== 1 ? "s" : ""}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="feedback">Your Feedback</Label>
-                      <Textarea
-                        id="feedback"
-                        rows={5}
-                        placeholder="Share your thoughts and experiences..."
-                        value={feedback}
-                        onChange={(e) => setFeedback(e.target.value)}
-                        required
-                        className="resize-none bg-background"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="attachments">
-                        Attachments (optional)
-                      </Label>
-                      <Input
-                        id="attachments"
-                        type="file"
-                        onChange={handleFileChange}
-                        multiple
-                        accept="image/*"
-                        className="mt-1 bg-background"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        You can upload multiple image files (JPG, PNG, GIF)
-                      </p>
-                    </div>
-
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={rating === 0 || feedback.trim() === ""}
-                    >
-                      Submit Feedback
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="lg:col-span-2 order-1 lg:order-2">
-              <Card className="bg-card shadow-lg">
-                <CardHeader className="pb-3">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                    <div>
-                      <CardTitle>Community Feedback</CardTitle>
-                      <CardDescription>
-                        See what others are saying about this
-                      </CardDescription>
-                    </div>
-                    <div className="flex mt-3 sm:mt-0">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center"
-                          >
-                            <Filter className="h-4 w-4 mr-2" />
-                            Filters
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-64 p-4 bg-popover">
-                          <div className="space-y-4">
-                            <div>
-                              <Label className="text-xs">
-                                Filter by Rating
-                              </Label>
-                              <Select
-                                value={ratingFilter}
-                                onValueChange={setRatingFilter}
-                              >
-                                <SelectTrigger className="bg-background">
-                                  <SelectValue placeholder="All Ratings" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-popover">
-                                  <SelectItem value="all">
-                                    All Ratings
-                                  </SelectItem>
-                                  <SelectItem value="5">5 Stars</SelectItem>
-                                  <SelectItem value="4">4 Stars</SelectItem>
-                                  <SelectItem value="3">3 Stars</SelectItem>
-                                  <SelectItem value="2">2 Stars</SelectItem>
-                                  <SelectItem value="1">1 Star</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div>
-                              <Label className="text-xs">Sort By</Label>
-                              <Select value={sortBy} onValueChange={setSortBy}>
-                                <SelectTrigger className="bg-background">
-                                  <SelectValue placeholder="Newest First" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-popover">
-                                  <SelectItem value="newest">
-                                    Newest First
-                                  </SelectItem>
-                                  <SelectItem value="oldest">
-                                    Oldest First
-                                  </SelectItem>
-                                  <SelectItem value="highest">
-                                    Highest Rated
-                                  </SelectItem>
-                                  <SelectItem value="lowest">
-                                    Lowest Rated
-                                  </SelectItem>
-                                  <SelectItem value="mostUpvoted">
-                                    Most Upvoted
-                                  </SelectItem>
-                                  <SelectItem value="mostDownvoted">
-                                    Most Downvoted
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pb-6">
                   <ScrollArea className="p-1">
-                    {displayedFeedback.length > 0 ? (
+                    {feedbackLoading ? (
+                      <div className="py-12 text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto"></div>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          Loading feedbacks...
+                        </p>
+                      </div>
+                    ) : feedbacks.length > 0 ? (
                       <div>
-                        {displayedFeedback.map((feedback) => (
+                        {feedbacks.map((feedback) => (
                           <FeedbackListItem
                             key={feedback.id}
                             id={feedback.id}
@@ -510,35 +493,27 @@ const FeedbackForm = () => {
                             attachments={feedback.attachments}
                             upvotes={feedback.upvotes}
                             downvotes={feedback.downvotes}
+                            // isVerified={feedback.isVerified}
                           />
                         ))}
-
-                        {loading && (
-                          <div className="py-4 text-center text-sm text-muted-foreground">
-                            Loading more feedback...
-                          </div>
-                        )}
-
-                        {!hasMore && displayedFeedback.length > 0 && (
-                          <div className="py-4 text-center text-sm text-muted-foreground">
-                            You've reached the end of the feedback
-                          </div>
-                        )}
                       </div>
                     ) : (
                       <div className="py-12 text-center text-muted-foreground">
-                        {ratingFilter !== "all" ? (
-                          <>No feedback with the selected filters</>
-                        ) : (
-                          <>Be the first to share your feedback!</>
-                        )}
+                        No feedback has been submitted yet
                       </div>
                     )}
                   </ScrollArea>
                 </CardContent>
+                <CardFooter className="border-t pt-6 flex justify-center">
+                  <Button asChild>
+                    <Link to={`/feedback/${campaign.slug}`}>
+                      Go to Feedback Form
+                    </Link>
+                  </Button>
+                </CardFooter>
               </Card>
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
       <FooterCommon />
