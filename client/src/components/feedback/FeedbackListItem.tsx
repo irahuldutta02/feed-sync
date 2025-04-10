@@ -4,31 +4,46 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { formatDistanceToNow } from "date-fns";
 import { Calendar, Image, ShieldCheck, Star } from "lucide-react";
 import VoteButtons from "./VoteButtons";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface FeedbackListItemProps {
-  id: number;
+  id: string;
   userName: string;
   rating: number;
   date: string;
   feedback: string;
   attachments: string[];
-  upvotes?: number;
-  downvotes?: number;
+  upvotes: string[];
+  downvotes: string[];
   isVerified?: boolean;
 }
 
 const FeedbackListItem = ({
+  id,
   userName,
   rating,
   date,
   feedback,
   attachments,
-  upvotes = Math.floor(Math.random() * 10),
-  downvotes = Math.floor(Math.random() * 3),
+  upvotes = [],
+  downvotes = [],
   isVerified,
 }: FeedbackListItemProps) => {
+  const { user } = useAuth();
+
+  // Determine if the current user has voted
+  const userUpvoted = user && upvotes.includes(user._id);
+  const userDownvoted = user && downvotes.includes(user._id);
+  const userVote = userUpvoted ? "up" : userDownvoted ? "down" : null;
+
+  // Format date
+  const formattedDate = formatDistanceToNow(new Date(date), {
+    addSuffix: true,
+  });
+
   return (
     <Card className="mb-4 hover:border-primary/40 transition-all">
       <CardContent className="p-4 sm:p-6">
@@ -57,7 +72,7 @@ const FeedbackListItem = ({
           <div className="flex items-center space-x-4">
             <div className="flex items-center text-sm text-muted-foreground">
               <Calendar className="h-3.5 w-3.5 mr-1" />
-              {date}
+              {formattedDate}
             </div>
             <div className="flex">
               {[...Array(5)].map((_, i) => (
@@ -76,7 +91,7 @@ const FeedbackListItem = ({
 
         <p className="text-sm mb-3 whitespace-pre-wrap">{feedback}</p>
 
-        {attachments.length > 0 && (
+        {attachments && attachments.length > 0 && (
           <div className="mt-4">
             <div className="flex items-center text-xs text-muted-foreground mb-2">
               <Image className="h-3.5 w-3.5 mr-1" />
@@ -107,7 +122,12 @@ const FeedbackListItem = ({
         )}
 
         <div className="mt-4 flex justify-end">
-          <VoteButtons initialUpvotes={upvotes} initialDownvotes={downvotes} />
+          <VoteButtons
+            feedbackId={id}
+            initialUpvotes={upvotes.length}
+            initialDownvotes={downvotes.length}
+            userInitialVote={userVote}
+          />
         </div>
       </CardContent>
     </Card>

@@ -36,8 +36,6 @@ const FeedbackForm = () => {
   const [feedbackLoading, setFeedbackLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [files, setFiles] = useState<FileList | null>(null);
@@ -62,69 +60,46 @@ const FeedbackForm = () => {
       }
     };
 
-    const fetchFeedbacks = async () => {
+    fetchCampaign();
+  }, [slug, user]);
+
+  useEffect(() => {
+    const fetchCampaign = async () => {
       try {
-        setFeedbackLoading(true);
+        setLoading(true);
+        const response = await api.get(`/campaign/detail/${slug}`);
 
-        const mockFeedbacks = [
-          {
-            id: 1,
-            userName: "Sarah Johnson",
-            rating: 5,
-            feedback:
-              "I love the new dashboard design! It's much easier to navigate and the reporting features are fantastic.",
-            date: "2023-07-28T15:30:00Z",
-            attachments: [
-              "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158",
-            ],
-            upvotes: 12,
-            downvotes: 2,
-            isVerified: true,
-          },
-          {
-            id: 2,
-            userName: "Michael Chen",
-            rating: 4,
-            feedback:
-              "Overall great experience, but I did notice some lag when loading large datasets. The UI is very intuitive though, and I appreciate the new filtering options.",
-            date: "2023-07-26T09:15:00Z",
-            attachments: [],
-            upvotes: 8,
-            downvotes: 1,
-            isVerified: true,
-          },
-          {
-            id: 3,
-            userName: "Anonymous",
-            rating: 3,
-            feedback:
-              "The new website looks good, but I'm having trouble finding some of the features that were easier to access in the old design. Maybe consider adding a comprehensive site map or improving the search functionality.",
-            date: "2023-07-25T14:20:00Z",
-            attachments: [
-              "https://images.unsplash.com/photo-1587614382346-4ec70e388b28",
-            ],
-            upvotes: 5,
-            downvotes: 3,
-            isVerified: false,
-          },
-        ];
-
-        setFeedbacks(mockFeedbacks);
-        setFeedbackLoading(false);
+        if (response?.data?.error === false) {
+          setCampaign(response.data.data);
+        } else {
+          setError(
+            response?.data?.message || "Failed to load campaign details"
+          );
+        }
       } catch (err) {
-        toast({
-          title: "Error",
-          description:
-            err?.response?.data?.message || "Failed to load campaign details",
-          variant: "destructive",
-        });
-        setFeedbackLoading(false);
+        setError(
+          err?.response?.data?.message || "Failed to load campaign details"
+        );
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchCampaign();
-    fetchFeedbacks();
-  }, [slug, user]);
+
+    // Only fetch feedbacks if campaign is loaded
+    if (campaign?._id) {
+      fetchFeedbacks();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
+
+  useEffect(() => {
+    if (campaign?._id) {
+      fetchFeedbacks();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaign?._id]);
 
   const copyFeedbackLink = () => {
     const url = `${window.location.origin}/c/${campaign.slug}`;
@@ -135,29 +110,161 @@ const FeedbackForm = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log({
-      name: isAnonymous ? "Anonymous" : name,
-      email: isAnonymous ? "" : email,
-      rating,
-      feedback,
-      files,
-      isAnonymous,
-    });
+    if (rating === 0 || feedback.trim() === "") {
+      toast({
+        title: "Validation Error",
+        description: "Please provide both a rating and feedback",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    toast({
-      title: "Feedback submitted!",
-      description: "Thank you for your feedback.",
-    });
+    try {
+      // Show loading state
+      const { dismiss: dismissLoadingToast } = toast({
+        title: "Submitting feedback...",
+        description: "Please wait while we process your submission",
+      });
 
-    setName("");
-    setEmail("");
-    setRating(0);
-    setFeedback("");
-    setFiles(null);
-    setIsAnonymous(false);
+      // Prepare form data for file uploads if needed
+      let attachmentUrls: string[] = [];
+
+      if (files && files.length > 0) {
+        // First upload any files
+        const formData = new FormData();
+        for (let i = 0; i < files.length; i++) {
+          formData.append("files", files[i]);
+        }
+
+        // Assuming you have an endpoint for file uploads
+        const uploadResponse = await api.post("/upload", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        if (uploadResponse?.data?.error === false) {
+          attachmentUrls = uploadResponse.data.data;
+        }
+      }
+
+      // Prepare feedback data
+      const feedbackData: {
+        campaignId: string;
+        rating: number;
+        feedback: string;
+        anonymous: boolean;
+        attachments: string[];
+        user?: {
+          _id: string;
+          name: string;
+          email: string;
+        };
+      } = {
+        campaignId: campaign._id,
+        rating,
+        feedback,
+        anonymous: isAnonymous,
+        attachments: attachmentUrls,
+      };
+
+      // If not authenticated and anonymous feedback is allowed, add name and email
+      if (isAuthenticated && !campaign?.allowAnonymous && !isAnonymous) {
+        feedbackData.user = user;
+      }
+
+      // Submit feedback
+      const response = await api.post("/feedback/create", feedbackData);
+
+      // Dismiss loading toast
+      dismissLoadingToast();
+
+      if (response?.data?.error === false) {
+        // Success
+        toast({
+          title: "Feedback submitted!",
+          description: "Thank you for your feedback.",
+        });
+
+        // Reset form
+        setRating(0);
+        setFeedback("");
+        setFiles(null);
+        setIsAnonymous(false);
+
+        // Refresh feedbacks list
+        setActiveTab("feedbacks");
+        fetchFeedbacks();
+      } else {
+        // Error from API
+        toast({
+          title: "Submission failed",
+          description: response?.data?.message || "Failed to submit feedback",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      // Handle error
+      toast({
+        title: "Submission failed",
+        description:
+          err?.response?.data?.message || "Failed to submit feedback",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchFeedbacks = async () => {
+    try {
+      setFeedbackLoading(true);
+
+      const response = await api.get("/feedback/paginated_list", {
+        params: {
+          campaignId: campaign._id,
+          page: 1,
+          limit: 10,
+          sort: "-createdAt",
+        },
+      });
+
+      if (response?.data?.error === false) {
+        // Transform the API response to match our component props
+        const formattedFeedbacks = response.data.data.map((feedback) => ({
+          id: feedback._id,
+          userName: feedback.anonymous
+            ? "Anonymous"
+            : feedback.createdBy?.name || "Unknown User",
+          rating: feedback.rating,
+          date: feedback.createdAt,
+          feedback: feedback.feedback,
+          attachments: feedback.attachments || [],
+          upvotes: feedback.upvotes || [],
+          downvotes: feedback.downvotes || [],
+          isVerified: feedback.isVerified,
+        }));
+
+        setFeedbacks(formattedFeedbacks);
+      } else {
+        toast({
+          title: "Error",
+          description: response?.data?.message || "Failed to load feedbacks",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      console.error(err);
+
+      toast({
+        title: "Error",
+        description: err?.response?.data?.message || "Failed to load feedbacks",
+        variant: "destructive",
+      });
+    } finally {
+      setFeedbackLoading(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -312,8 +419,9 @@ const FeedbackForm = () => {
 
                       {!isOwner && campaign?.status === "Active" && (
                         <>
-                          {showForm && (
+                          {showForm ? (
                             <form onSubmit={handleSubmit} className="space-y-6">
+                              {/* Anonymous toggle for authenticated users */}
                               {isAuthenticated && campaign?.allowAnonymous && (
                                 <AnonymousFeedbackToggle
                                   isAnonymous={isAnonymous}
@@ -391,6 +499,21 @@ const FeedbackForm = () => {
                                 Submit Feedback
                               </Button>
                             </form>
+                          ) : (
+                            <div className="py-8 text-center">
+                              <div className="bg-primary/10 p-4 rounded-md mb-4">
+                                <h3 className="font-medium text-lg mb-2">
+                                  Sign in to submit feedback
+                                </h3>
+                                <p className="text-muted-foreground mb-4">
+                                  Please sign in to share your feedback for this
+                                  campaign.
+                                </p>
+                                <Button asChild>
+                                  <Link to="/login">Sign In</Link>
+                                </Button>
+                              </div>
+                            </div>
                           )}
                         </>
                       )}
@@ -496,13 +619,6 @@ const FeedbackForm = () => {
                     )}
                   </ScrollArea>
                 </CardContent>
-                <CardFooter className="border-t pt-6 flex justify-center">
-                  <Button asChild>
-                    <Link to={`/feedback/${campaign.slug}`}>
-                      Go to Feedback Form
-                    </Link>
-                  </Button>
-                </CardFooter>
               </Card>
             </TabsContent>
           </Tabs>

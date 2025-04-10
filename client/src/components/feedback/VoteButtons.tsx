@@ -1,103 +1,178 @@
-
-import React, { useState } from 'react';
-import { ThumbsUp, ThumbsDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect } from "react";
+import { ThumbsUp, ThumbsDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import api from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
 
 interface VoteButtonsProps {
-  initialUpvotes?: number;
-  initialDownvotes?: number;
-  onVoteChange?: (upvotes: number, downvotes: number) => void;
+  feedbackId: string;
+  initialUpvotes: number;
+  initialDownvotes: number;
+  userInitialVote?: "up" | "down" | null;
+  disabled?: boolean;
 }
 
 const VoteButtons = ({
+  feedbackId,
   initialUpvotes = 0,
   initialDownvotes = 0,
-  onVoteChange,
+  userInitialVote = null,
+  disabled = false,
 }: VoteButtonsProps) => {
-  const [userVote, setUserVote] = useState<'up' | 'down' | null>(null);
+  const { isAuthenticated } = useAuth();
+  const [userVote, setUserVote] = useState<"up" | "down" | null>(
+    userInitialVote
+  );
   const [upvotes, setUpvotes] = useState(initialUpvotes);
   const [downvotes, setDownvotes] = useState(initialDownvotes);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleUpvote = () => {
-    if (userVote === 'up') {
-      // Undo upvote
-      setUpvotes(upvotes - 1);
-      setUserVote(null);
-      onVoteChange?.(upvotes - 1, downvotes);
-    } else {
-      // Add upvote and remove downvote if exists
-      const newUpvotes = upvotes + 1;
-      let newDownvotes = downvotes;
-      
-      if (userVote === 'down') {
-        newDownvotes = downvotes - 1;
-      }
-      
-      setUpvotes(newUpvotes);
-      setDownvotes(newDownvotes);
-      setUserVote('up');
-      onVoteChange?.(newUpvotes, newDownvotes);
+  // Update local state if props change (e.g. from server refresh)
+  useEffect(() => {
+    setUpvotes(initialUpvotes);
+    setDownvotes(initialDownvotes);
+    setUserVote(userInitialVote);
+  }, [initialUpvotes, initialDownvotes, userInitialVote]);
+
+  const handleVote = async (action: "upvote" | "downvote") => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to vote on feedback",
+        variant: "destructive",
+      });
+      return;
     }
-  };
 
-  const handleDownvote = () => {
-    if (userVote === 'down') {
-      // Undo downvote
-      setDownvotes(downvotes - 1);
-      setUserVote(null);
-      onVoteChange?.(upvotes, downvotes - 1);
-    } else {
-      // Add downvote and remove upvote if exists
-      const newDownvotes = downvotes + 1;
-      let newUpvotes = upvotes;
-      
-      if (userVote === 'up') {
-        newUpvotes = upvotes - 1;
+    if (disabled || isSubmitting) {
+      return;
+    }
+
+    // Store previous state for rollback if API call fails
+    const previousUserVote = userVote;
+    const previousUpvotes = upvotes;
+    const previousDownvotes = downvotes;
+
+    // Optimistically update UI
+    if (action === "upvote") {
+      if (userVote === "up") {
+        // Undo upvote
+        setUpvotes(upvotes - 1);
+        setUserVote(null);
+      } else {
+        // Add upvote and remove downvote if exists
+        setUpvotes(upvotes + 1);
+        if (userVote === "down") {
+          setDownvotes(downvotes - 1);
+        }
+        setUserVote("up");
       }
-      
-      setDownvotes(newDownvotes);
-      setUpvotes(newUpvotes);
-      setUserVote('down');
-      onVoteChange?.(newUpvotes, newDownvotes);
+    } else {
+      if (userVote === "down") {
+        // Undo downvote
+        setDownvotes(downvotes - 1);
+        setUserVote(null);
+      } else {
+        // Add downvote and remove upvote if exists
+        setDownvotes(downvotes + 1);
+        if (userVote === "up") {
+          setUpvotes(upvotes - 1);
+        }
+        setUserVote("down");
+      }
+    }
+
+    // Make API call
+    try {
+      setIsSubmitting(true);
+      const response = await api.put(
+        `/feedback/upvote_downvote/${feedbackId}`,
+        {
+          action: action,
+        }
+      );
+
+      if (response?.data?.error) {
+        throw new Error(response.data.message || "Failed to update vote");
+      }
+
+      // Update with actual server values if needed
+      const serverData = response.data.data;
+      setUpvotes(serverData.upvotes);
+      setDownvotes(serverData.downvotes);
+      setUserVote(
+        serverData.userUpvoted ? "up" : serverData.userDownvoted ? "down" : null
+      );
+    } catch (error) {
+      // Rollback to previous state if API call fails
+      setUserVote(previousUserVote);
+      setUpvotes(previousUpvotes);
+      setDownvotes(previousDownvotes);
+
+      toast({
+        title: "Vote failed",
+        description:
+          error.message || "Failed to update vote. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className="flex items-center space-x-4">
       <button
-        onClick={handleUpvote}
-        className="flex items-center space-x-1 text-sm"
+        onClick={() => handleVote("upvote")}
+        className={cn(
+          "flex items-center space-x-1 text-sm transition-colors",
+          disabled && "opacity-50 cursor-not-allowed"
+        )}
+        disabled={disabled || isSubmitting}
         aria-label="Upvote"
       >
-        <ThumbsUp 
+        <ThumbsUp
           className={cn(
-            "h-4 w-4", 
-            userVote === 'up' ? "text-green-500 fill-green-500" : "text-muted-foreground"
-          )} 
+            "h-4 w-4",
+            userVote === "up"
+              ? "text-green-500 fill-green-500"
+              : "text-muted-foreground"
+          )}
         />
-        <span className={cn(
-          "text-xs",
-          userVote === 'up' ? "text-green-500" : "text-muted-foreground"
-        )}>
+        <span
+          className={cn(
+            "text-xs",
+            userVote === "up" ? "text-green-500" : "text-muted-foreground"
+          )}
+        >
           {upvotes}
         </span>
       </button>
-      
+
       <button
-        onClick={handleDownvote}
-        className="flex items-center space-x-1 text-sm"
+        onClick={() => handleVote("downvote")}
+        className={cn(
+          "flex items-center space-x-1 text-sm transition-colors",
+          disabled && "opacity-50 cursor-not-allowed"
+        )}
+        disabled={disabled || isSubmitting}
         aria-label="Downvote"
       >
-        <ThumbsDown 
+        <ThumbsDown
           className={cn(
-            "h-4 w-4", 
-            userVote === 'down' ? "text-red-500 fill-red-500" : "text-muted-foreground"
-          )} 
+            "h-4 w-4",
+            userVote === "down"
+              ? "text-red-500 fill-red-500"
+              : "text-muted-foreground"
+          )}
         />
-        <span className={cn(
-          "text-xs",
-          userVote === 'down' ? "text-red-500" : "text-muted-foreground"
-        )}>
+        <span
+          className={cn(
+            "text-xs",
+            userVote === "down" ? "text-red-500" : "text-muted-foreground"
+          )}
+        >
           {downvotes}
         </span>
       </button>

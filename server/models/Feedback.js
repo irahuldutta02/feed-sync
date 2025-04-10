@@ -50,6 +50,13 @@ const FeedbackSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    status: [
+      {
+        type: String,
+        enum: ["Active", "Deleted"],
+        default: "Active",
+      },
+    ],
   },
   {
     timestamps: true,

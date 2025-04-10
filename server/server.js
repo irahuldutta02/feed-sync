@@ -8,6 +8,7 @@ const { SERVER_PORT, SERVER_URL } = require("./config/serverConfig");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 const campaignRouter = require("./routes/campaignRoutes");
 const authRouter = require("./routes/authRoutes");
+const feedbackRouter = require("./routes/feedbackRoutes");
 
 dotenv.config();
 connectDB();
@@ -46,6 +47,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRouter);
 app.use("/api/campaign", campaignRouter);
+app.use("/api/feedback", feedbackRouter);
 
 app.use(notFound);
 app.use(errorHandler);
