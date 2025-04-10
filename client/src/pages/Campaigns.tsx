@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/table";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
 import { formatDate, getCurrentTimeZone } from "@/lib/dateUtils";
 import api from "@/services/api";
 import { ApiResponse, Campaign } from "@/types/campaign";
@@ -52,14 +53,13 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 const Campaigns: React.FC = () => {
-  // State for campaign list and pagination
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 10;
   const [totalPages, setTotalPages] = useState<number>(1);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [statusFilter, setStatusFilter] = useState<string>("all"); // Changed default to "all"
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [totalCampaigns, setTotalCampaigns] = useState<number>(0);
 
   // State for modals
@@ -74,13 +74,7 @@ const Campaigns: React.FC = () => {
   const { user } = useAuth();
   const userId = user?._id;
 
-  // Fetch campaigns
-  useEffect(() => {
-    fetchCampaigns();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, searchQuery, statusFilter]);
-
-  const fetchCampaigns = async () => {
+  const fetchCampaignsWithoutDebounce = async () => {
     setIsLoading(true);
     try {
       const response = await api.get<ApiResponse<Campaign[]>>(
@@ -133,6 +127,18 @@ const Campaigns: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  const fetchCampaigns = useDebounce(fetchCampaignsWithoutDebounce, 300);
+
+  // Fetch campaigns
+  useEffect(() => {
+    fetchCampaigns();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, searchQuery, statusFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
 
   // Handle campaign deletion
   const handleDeleteClick = (campaign: Campaign) => {

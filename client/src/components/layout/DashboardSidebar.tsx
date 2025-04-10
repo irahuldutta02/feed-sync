@@ -56,12 +56,6 @@ const DashboardSidebar = () => {
             isActive={pathname === "/dashboard"}
           />
           <NavItem
-            to="/dashboard/create-campaign"
-            icon={<Edit3 size={18} />}
-            label="Create Campaign"
-            isActive={pathname === "/dashboard/create-campaign"}
-          />
-          <NavItem
             to="/dashboard/campaigns"
             icon={<BarChart2 size={18} />}
             label="My Campaigns"

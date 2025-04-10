@@ -40,7 +40,6 @@ export const MainRoutes = () => {
       element: <Layout />,
       children: [
         { path: "", element: <Dashboard /> },
-        { path: "create-campaign", element: <CreateCampaign /> },
         { path: "campaigns", element: <Campaigns /> },
         { path: "feedback", element: <Feedback /> },
       ],
