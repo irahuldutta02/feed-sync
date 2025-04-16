@@ -20,7 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import api from "@/services/api";
 import { formatDistanceToNow } from "date-fns";
-import { Link as LinkIcon, Pencil, Share, Star } from "lucide-react";
+import { Link as LinkIcon, Pencil, Share, Star, Trash2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
@@ -218,6 +218,59 @@ const FeedbackForm = () => {
         title: "Update failed",
         description:
           err?.response?.data?.message || "Failed to update feedback",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!userFeedback?._id) return;
+
+    try {
+      // Show loading state
+      const { dismiss: dismissLoadingToast } = toast({
+        title: "Deleting feedback...",
+        description: "Please wait while we process your request",
+      });
+
+      // Delete feedback
+      const response = await api.put(
+        `/feedback/mark_feedback_deleted/${userFeedback._id}`
+      );
+
+      // Dismiss loading toast
+      dismissLoadingToast();
+
+      if (response?.data?.error === false) {
+        // Success
+        toast({
+          title: "Feedback deleted!",
+          description: "Your feedback has been deleted successfully.",
+        });
+
+        // Reset form and states
+        setRating(0);
+        setFeedback("");
+        setFiles(null);
+        setIsAnonymous(false);
+        setUserFeedback(null);
+        setIsEditMode(false);
+
+        // Switch to feedbacks tab to see updated list
+        setActiveTab("feedbacks");
+      } else {
+        // Error from API
+        toast({
+          title: "Delete failed",
+          description: response?.data?.message || "Failed to delete feedback",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Delete failed",
+        description:
+          err?.response?.data?.message || "Failed to delete feedback",
         variant: "destructive",
       });
     }
@@ -569,13 +622,23 @@ const FeedbackForm = () => {
                                         </div>
                                       )}
 
-                                    <Button
-                                      onClick={handleEditClick}
-                                      className="mt-4"
-                                    >
-                                      <Pencil className="h-4 w-4 mr-2" />
-                                      Edit Feedback
-                                    </Button>
+                                    <div className="flex space-x-2 mt-4">
+                                      <Button
+                                        onClick={handleEditClick}
+                                        className="w-full"
+                                      >
+                                        <Pencil className="h-4 w-4 mr-2" />
+                                        Edit Feedback
+                                      </Button>
+                                      <Button
+                                        onClick={handleDelete}
+                                        variant="destructive"
+                                        className="w-full"
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete Feedback
+                                      </Button>
+                                    </div>
                                   </div>
                                 </CardContent>
                               </Card>
