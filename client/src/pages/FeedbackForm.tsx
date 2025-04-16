@@ -1,15 +1,18 @@
+import AnonymousFeedbackToggle from "@/components/feedback/AnonymousFeedbackToggle";
 import FeedbackListItem from "@/components/feedback/FeedbackListItem";
 import FooterCommon from "@/components/ui-custom/FooterCommon";
+import { LoginCard } from "@/components/ui-custom/LoginCard";
+import { Logo } from "@/components/ui-custom/Logo";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,13 +20,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import api from "@/services/api";
-import { Label } from "@/components/ui/label";
 import { formatDistanceToNow } from "date-fns";
-import { Link as LinkIcon, Share, Star } from "lucide-react";
+import { Link as LinkIcon, Pencil, Share, Star } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import AnonymousFeedbackToggle from "@/components/feedback/AnonymousFeedbackToggle";
-import { Logo } from "@/components/ui-custom/Logo";
+import { useParams } from "react-router-dom";
 
 const FeedbackForm = () => {
   const { slug } = useParams();
@@ -39,8 +39,13 @@ const FeedbackForm = () => {
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [files, setFiles] = useState<FileList | null>(null);
-  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(!isAuthenticated); // Set to true by default for logged-out users
   const [hoveredStar, setHoveredStar] = useState(0);
+
+  // New states for user feedback and edit mode
+  const [userFeedback, setUserFeedback] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [feedbackId, setFeedbackId] = useState("");
 
   useEffect(() => {
     const fetchCampaign = async () => {
@@ -100,6 +105,145 @@ const FeedbackForm = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campaign?._id]);
+
+  useEffect(() => {
+    if (campaign?._id && isAuthenticated && user?._id) {
+      fetchUserFeedback();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaign?._id, isAuthenticated, user?._id]);
+
+  const fetchUserFeedback = async () => {
+    try {
+      const response = await api.get(`/feedback/user-feedback/${campaign._id}`);
+
+      if (response?.data?.error === false) {
+        setUserFeedback(response.data.data);
+        setFeedbackId(response.data.data._id);
+      }
+    } catch (err) {
+      // No feedback found - that's ok, we'll show the form
+      console.log(err?.response?.data?.message || "No existing feedback found");
+    }
+  };
+
+  const handleEditClick = () => {
+    if (userFeedback) {
+      // Populate form with existing feedback data
+      setRating(userFeedback.rating);
+      setFeedback(userFeedback.feedback);
+      setIsEditMode(true);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    // Reset form and exit edit mode
+    setRating(userFeedback?.rating || 0);
+    setFeedback(userFeedback?.feedback || "");
+    setIsEditMode(false);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (rating === 0 || feedback.trim() === "") {
+      toast({
+        title: "Validation Error",
+        description: "Please provide both a rating and feedback",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Show loading state
+      const { dismiss: dismissLoadingToast } = toast({
+        title: "Updating feedback...",
+        description: "Please wait while we process your changes",
+      });
+
+      // Prepare form data for file uploads if needed
+      let attachmentUrls: string[] = userFeedback.attachments || [];
+
+      if (files && files.length > 0) {
+        // First upload any new files
+        const formData = new FormData();
+        for (let i = 0; i < files.length; i++) {
+          formData.append("files", files[i]);
+        }
+
+        // Assuming you have an endpoint for file uploads
+        const uploadResponse = await api.post("/upload", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        if (uploadResponse?.data?.error === false) {
+          attachmentUrls = [...attachmentUrls, ...uploadResponse.data.data];
+        }
+      }
+
+      // Prepare feedback data for update
+      const updateData = {
+        rating,
+        feedback,
+        attachments: attachmentUrls,
+      };
+
+      // Update feedback
+      const response = await api.put(
+        `/feedback/update/${feedbackId}`,
+        updateData
+      );
+
+      // Dismiss loading toast
+      dismissLoadingToast();
+
+      if (response?.data?.error === false) {
+        // Success
+        toast({
+          title: "Feedback updated!",
+          description: "Your feedback has been updated successfully.",
+        });
+
+        // Reset edit mode
+        setIsEditMode(false);
+
+        // Update user feedback state with new data
+        setUserFeedback(response.data.data);
+
+        // Refresh user feedback
+        fetchUserFeedback();
+
+        // Reset form
+        setFiles(null);
+
+        // Refresh feedbacks list
+        fetchFeedbacks();
+      } else {
+        // Error from API
+        toast({
+          title: "Update failed",
+          description: response?.data?.message || "Failed to update feedback",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Update failed",
+        description:
+          err?.response?.data?.message || "Failed to update feedback",
+        variant: "destructive",
+      });
+    } finally {
+      setRating(0);
+      setFeedback("");
+      setFiles(null);
+      setIsAnonymous(false);
+      fetchUserFeedback();
+    }
+  };
 
   const copyFeedbackLink = () => {
     const url = `${window.location.origin}/c/${campaign.slug}`;
@@ -171,8 +315,7 @@ const FeedbackForm = () => {
         attachments: attachmentUrls,
       };
 
-      // If not authenticated and anonymous feedback is allowed, add name and email
-      if (isAuthenticated && !campaign?.allowAnonymous && !isAnonymous) {
+      if (!isAnonymous) {
         feedbackData.user = user;
       }
 
@@ -281,11 +424,13 @@ const FeedbackForm = () => {
 
   let showForm = false;
 
+  // Show form if authenticated
   if (isAuthenticated) {
     showForm = true;
   }
 
-  if (!isAuthenticated && campaign?.allowAnonymous) {
+  // Show form if anonymous is allowed and user is anonymous
+  if (!isAuthenticated && campaign?.allowAnonymous && isAnonymous) {
     showForm = true;
   }
 
@@ -419,101 +564,211 @@ const FeedbackForm = () => {
 
                       {!isOwner && campaign?.status === "Active" && (
                         <>
-                          {showForm ? (
-                            <form onSubmit={handleSubmit} className="space-y-6">
-                              {/* Anonymous toggle for authenticated users */}
-                              {isAuthenticated && campaign?.allowAnonymous && (
+                          {/* Check if user has already submitted feedback and is not in edit mode */}
+                          {userFeedback && !isEditMode ? (
+                            <div className="py-8">
+                              <div className="bg-green-500/10 text-green-600 p-4 rounded-md mb-4">
+                                <h3 className="font-medium text-lg mb-2">
+                                  Your Feedback
+                                </h3>
+                                <p>
+                                  You've already submitted feedback for this
+                                  campaign.
+                                </p>
+                              </div>
+
+                              <Card className="mt-4">
+                                <CardContent className="pt-6">
+                                  <div className="space-y-4">
+                                    <div>
+                                      <Label className="text-sm font-medium text-muted-foreground">
+                                        Rating
+                                      </Label>
+                                      <div className="flex items-center mt-1">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                          <Star
+                                            key={star}
+                                            className={`h-5 w-5 ${
+                                              star <= userFeedback.rating
+                                                ? "text-yellow-500 fill-yellow-500"
+                                                : "text-gray-300"
+                                            }`}
+                                          />
+                                        ))}
+                                        <span className="ml-2 text-sm">
+                                          {userFeedback.rating} star
+                                          {userFeedback.rating !== 1 ? "s" : ""}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    <div>
+                                      <Label className="text-sm font-medium text-muted-foreground">
+                                        Your Feedback
+                                      </Label>
+                                      <p className="mt-1">
+                                        {userFeedback.feedback}
+                                      </p>
+                                    </div>
+
+                                    {userFeedback.attachments &&
+                                      userFeedback.attachments.length > 0 && (
+                                        <div>
+                                          <Label className="text-sm font-medium text-muted-foreground">
+                                            Attachments
+                                          </Label>
+                                          <div className="flex flex-wrap gap-2 mt-1">
+                                            {userFeedback.attachments.map(
+                                              (url, index) => (
+                                                <a
+                                                  key={index}
+                                                  href={url}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="block w-16 h-16 rounded border overflow-hidden"
+                                                >
+                                                  <img
+                                                    src={url}
+                                                    alt={`Attachment ${
+                                                      index + 1
+                                                    }`}
+                                                    className="w-full h-full object-cover"
+                                                  />
+                                                </a>
+                                              )
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                    <Button
+                                      onClick={handleEditClick}
+                                      className="mt-4"
+                                    >
+                                      <Pencil className="h-4 w-4 mr-2" />
+                                      Edit Feedback
+                                    </Button>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </div>
+                          ) : (
+                            <>
+                              {/* Show anonymous toggle ONLY when creating new feedback, not when editing */}
+                              {campaign?.allowAnonymous && !isEditMode && (
                                 <AnonymousFeedbackToggle
                                   isAnonymous={isAnonymous}
-                                  onChange={setIsAnonymous}
+                                  onChange={(value) => {
+                                    setIsAnonymous(value);
+                                  }}
                                 />
                               )}
 
-                              <div>
-                                <Label htmlFor="rating">Rating</Label>
-                                <div className="flex items-center space-x-1 my-2">
-                                  {[1, 2, 3, 4, 5].map((star) => (
-                                    <button
-                                      key={star}
-                                      type="button"
-                                      className="p-1 focus:outline-none"
-                                      onMouseEnter={() => setHoveredStar(star)}
-                                      onMouseLeave={() => setHoveredStar(0)}
-                                      onClick={() => setRating(star)}
+                              {showForm ? (
+                                <form
+                                  onSubmit={
+                                    isEditMode ? handleUpdate : handleSubmit
+                                  }
+                                  className="space-y-6"
+                                >
+                                  <div>
+                                    <Label htmlFor="rating">Rating</Label>
+                                    <div className="flex items-center space-x-1 my-2">
+                                      {[1, 2, 3, 4, 5].map((star) => (
+                                        <button
+                                          key={star}
+                                          type="button"
+                                          className="p-1 focus:outline-none"
+                                          onMouseEnter={() =>
+                                            setHoveredStar(star)
+                                          }
+                                          onMouseLeave={() => setHoveredStar(0)}
+                                          onClick={() => setRating(star)}
+                                        >
+                                          <Star
+                                            className={`h-6 w-6 ${
+                                              star <= (hoveredStar || rating)
+                                                ? "text-yellow-500 fill-yellow-500"
+                                                : "text-muted-foreground"
+                                            }`}
+                                          />
+                                        </button>
+                                      ))}
+                                      {rating > 0 && (
+                                        <span className="ml-2 text-sm text-muted-foreground">
+                                          {rating} star{rating !== 1 ? "s" : ""}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <Label htmlFor="feedback">
+                                      Your Feedback
+                                    </Label>
+                                    <Textarea
+                                      id="feedback"
+                                      rows={5}
+                                      placeholder="Share your thoughts and experiences..."
+                                      value={feedback}
+                                      onChange={(e) =>
+                                        setFeedback(e.target.value)
+                                      }
+                                      required
+                                      className="resize-none bg-background"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <Label htmlFor="attachments">
+                                      Attachments (optional)
+                                    </Label>
+                                    <Input
+                                      id="attachments"
+                                      type="file"
+                                      onChange={handleFileChange}
+                                      multiple
+                                      accept="image/*"
+                                      className="mt-1 bg-background"
+                                    />
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      You can upload multiple image files (JPG,
+                                      PNG, GIF)
+                                    </p>
+                                  </div>
+
+                                  <div className="flex space-x-2">
+                                    <Button
+                                      type="submit"
+                                      className="w-full"
+                                      disabled={
+                                        rating === 0 || feedback.trim() === ""
+                                      }
                                     >
-                                      <Star
-                                        className={`h-6 w-6 ${
-                                          star <= (hoveredStar || rating)
-                                            ? "text-yellow-500 fill-yellow-500"
-                                            : "text-muted-foreground"
-                                        }`}
-                                      />
-                                    </button>
-                                  ))}
-                                  {rating > 0 && (
-                                    <span className="ml-2 text-sm text-muted-foreground">
-                                      {rating} star{rating !== 1 ? "s" : ""}
-                                    </span>
-                                  )}
+                                      {isEditMode
+                                        ? "Update Feedback"
+                                        : "Submit Feedback"}
+                                    </Button>
+                                    {isEditMode && (
+                                      <Button
+                                        type="button"
+                                        className="w-full"
+                                        variant="outline"
+                                        onClick={handleCancelEdit}
+                                      >
+                                        Cancel
+                                      </Button>
+                                    )}
+                                  </div>
+                                </form>
+                              ) : (
+                                <div className="py-8 text-center">
+                                  <div className="bg-primary/10 p-4 rounded-md mb-4">
+                                    <LoginCard />
+                                  </div>
                                 </div>
-                              </div>
-
-                              <div>
-                                <Label htmlFor="feedback">Your Feedback</Label>
-                                <Textarea
-                                  id="feedback"
-                                  rows={5}
-                                  placeholder="Share your thoughts and experiences..."
-                                  value={feedback}
-                                  onChange={(e) => setFeedback(e.target.value)}
-                                  required
-                                  className="resize-none bg-background"
-                                />
-                              </div>
-
-                              <div>
-                                <Label htmlFor="attachments">
-                                  Attachments (optional)
-                                </Label>
-                                <Input
-                                  id="attachments"
-                                  type="file"
-                                  onChange={handleFileChange}
-                                  multiple
-                                  accept="image/*"
-                                  className="mt-1 bg-background"
-                                />
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  You can upload multiple image files (JPG, PNG,
-                                  GIF)
-                                </p>
-                              </div>
-
-                              <Button
-                                type="submit"
-                                className="w-full"
-                                disabled={
-                                  rating === 0 || feedback.trim() === ""
-                                }
-                              >
-                                Submit Feedback
-                              </Button>
-                            </form>
-                          ) : (
-                            <div className="py-8 text-center">
-                              <div className="bg-primary/10 p-4 rounded-md mb-4">
-                                <h3 className="font-medium text-lg mb-2">
-                                  Sign in to submit feedback
-                                </h3>
-                                <p className="text-muted-foreground mb-4">
-                                  Please sign in to share your feedback for this
-                                  campaign.
-                                </p>
-                                <Button asChild>
-                                  <Link to="/login">Sign In</Link>
-                                </Button>
-                              </div>
-                            </div>
+                              )}
+                            </>
                           )}
                         </>
                       )}

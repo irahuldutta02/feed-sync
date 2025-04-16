@@ -25,4 +25,15 @@ api.interceptors.response.use(
   }
 );
 
+// Add a utility function to check if the user has already given feedback for a campaign
+export const getUserFeedbackForCampaign = async (campaignId) => {
+  try {
+    const response = await api.get(`/feedback/user-feedback/${campaignId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching user feedback:", error);
+    return { error: true, data: null };
+  }
+};
+
 export default api;

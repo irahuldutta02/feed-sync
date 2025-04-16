@@ -11,7 +11,10 @@ const feedbackCreate = asyncHandler(async (req, res) => {
     feedback,
     anonymous = false,
     attachments = [],
+    user = null,
   } = req.body;
+
+  console.log(req.body);
 
   // Validate required fields
   if (!campaignId || !rating || !feedback) {
@@ -59,29 +62,36 @@ const feedbackCreate = asyncHandler(async (req, res) => {
     attachments,
   };
 
-  if (!campaign?.allowAnonymous && !req.body.user) {
+  if (!campaign?.allowAnonymous && !user) {
     res.status(400);
     throw new Error("Anonymous feedback is not allowed for this campaign");
   }
 
   // If user is logged in and not anonymous, add user reference
-  if (!anonymous) {
-    feedbackData.createdBy = req.body.user._id;
+  if (!anonymous && user) {
+    // Handle both cases: when user is passed as an object with _id or when req.user is available
+    const userId = user._id ? user._id : req.user ? req.user._id : null;
+    if (userId) {
+      feedbackData.createdBy = userId;
+    }
   }
 
-  console.log({
-    user: req.body.user,
-  });
-
   // Check if user is verified for this campaign
-  if (!anonymous && req.body.user) {
-    const verifiedUser = await VerifiedUser.findOne({
-      campaignId,
-      email: req.body.user.email,
-    });
+  if (!anonymous && user) {
+    const userEmail = user.email
+      ? user.email
+      : req.user
+      ? req.user.email
+      : null;
+    if (userEmail) {
+      const verifiedUser = await VerifiedUser.findOne({
+        campaignId,
+        email: userEmail,
+      });
 
-    if (verifiedUser) {
-      feedbackData.isVerified = true;
+      if (verifiedUser) {
+        feedbackData.isVerified = true;
+      }
     }
   }
 
@@ -361,6 +371,40 @@ const upvoteDownvoteFeedback = asyncHandler(async (req, res) => {
   });
 });
 
+const getUserFeedback = asyncHandler(async (req, res) => {
+  const campaignId = req.params.campaignId;
+  const userId = req.user._id;
+
+  if (!campaignId) {
+    return res.status(400).json({
+      status: 400,
+      error: true,
+      message: "Campaign ID is required",
+    });
+  }
+
+  // Find feedback by the user for this campaign
+  const userFeedback = await Feedback.findOne({
+    campaignId,
+    createdBy: userId,
+    status: { $ne: "Deleted" },
+  });
+
+  if (!userFeedback) {
+    return res.status(404).json({
+      status: 404,
+      error: true,
+      message: "No feedback found",
+    });
+  }
+
+  return res.status(200).json({
+    status: 200,
+    error: false,
+    data: userFeedback,
+  });
+});
+
 module.exports = {
   feedbackCreate,
   feedbackUpdate,
@@ -368,4 +412,5 @@ module.exports = {
   feedbackPaginatedList,
   markFeedbackDeleted,
   upvoteDownvoteFeedback,
+  getUserFeedback,
 };
