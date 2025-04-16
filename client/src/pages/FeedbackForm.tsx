@@ -1,5 +1,5 @@
 import AnonymousFeedbackToggle from "@/components/feedback/AnonymousFeedbackToggle";
-import FeedbackListItem from "@/components/feedback/FeedbackListItem";
+import FeedbackList from "@/components/feedback/FeedbackList";
 import FooterCommon from "@/components/ui-custom/FooterCommon";
 import { LoginCard } from "@/components/ui-custom/LoginCard";
 import { Logo } from "@/components/ui-custom/Logo";
@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,8 +31,6 @@ const FeedbackForm = () => {
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [feedbacks, setFeedbacks] = useState([]);
-  const [feedbackLoading, setFeedbackLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
 
   const [rating, setRating] = useState(0);
@@ -42,7 +39,7 @@ const FeedbackForm = () => {
   const [isAnonymous, setIsAnonymous] = useState(!isAuthenticated); // Set to true by default for logged-out users
   const [hoveredStar, setHoveredStar] = useState(0);
 
-  // New states for user feedback and edit mode
+  // States for user feedback and edit mode
   const [userFeedback, setUserFeedback] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [feedbackId, setFeedbackId] = useState("");
@@ -91,20 +88,7 @@ const FeedbackForm = () => {
     };
 
     fetchCampaign();
-
-    // Only fetch feedbacks if campaign is loaded
-    if (campaign?._id) {
-      fetchFeedbacks();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
-
-  useEffect(() => {
-    if (campaign?._id) {
-      fetchFeedbacks();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [campaign?._id]);
 
   useEffect(() => {
     if (campaign?._id && isAuthenticated && user?._id) {
@@ -219,14 +203,8 @@ const FeedbackForm = () => {
         // Reset form
         setFiles(null);
 
-        // Refresh feedbacks list
-        fetchFeedbacks();
-
-        // Reset the form
-        setRating(0);
-        setFeedback("");
-        setFiles(null);
-        setIsAnonymous(false);
+        // Switch to feedbacks tab to see all feedbacks including the updated one
+        setActiveTab("feedbacks");
       } else {
         // Error from API
         toast({
@@ -338,9 +316,8 @@ const FeedbackForm = () => {
         setFiles(null);
         setIsAnonymous(false);
 
-        // Refresh feedbacks list
+        // Switch to feedbacks tab to see all feedbacks including the new one
         setActiveTab("feedbacks");
-        fetchFeedbacks();
         fetchUserFeedback();
       } else {
         // Error from API
@@ -358,56 +335,6 @@ const FeedbackForm = () => {
           err?.response?.data?.message || "Failed to submit feedback",
         variant: "destructive",
       });
-    }
-  };
-
-  const fetchFeedbacks = async () => {
-    try {
-      setFeedbackLoading(true);
-
-      const response = await api.get("/feedback/paginated_list", {
-        params: {
-          campaignId: campaign._id,
-          page: 1,
-          limit: 10,
-          sort: "-createdAt",
-        },
-      });
-
-      if (response?.data?.error === false) {
-        // Transform the API response to match our component props
-        const formattedFeedbacks = response.data.data.map((feedback) => ({
-          id: feedback._id,
-          userName: feedback.anonymous
-            ? "Anonymous"
-            : feedback.createdBy?.name || "Unknown User",
-          rating: feedback.rating,
-          date: feedback.createdAt,
-          feedback: feedback.feedback,
-          attachments: feedback.attachments || [],
-          upvotes: feedback.upvotes || [],
-          downvotes: feedback.downvotes || [],
-          isVerified: feedback.isVerified,
-        }));
-
-        setFeedbacks(formattedFeedbacks);
-      } else {
-        toast({
-          title: "Error",
-          description: response?.data?.message || "Failed to load feedbacks",
-          variant: "destructive",
-        });
-      }
-    } catch (err) {
-      console.error(err);
-
-      toast({
-        title: "Error",
-        description: err?.response?.data?.message || "Failed to load feedbacks",
-        variant: "destructive",
-      });
-    } finally {
-      setFeedbackLoading(false);
     }
   };
 
@@ -835,47 +762,7 @@ const FeedbackForm = () => {
             </TabsContent>
 
             <TabsContent value="feedbacks">
-              <Card className="bg-card shadow-lg">
-                <CardHeader>
-                  <CardTitle>Feedback Submissions</CardTitle>
-                  <CardDescription>
-                    All feedback received for this campaign
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="p-1">
-                    {feedbackLoading ? (
-                      <div className="py-12 text-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto"></div>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          Loading feedbacks...
-                        </p>
-                      </div>
-                    ) : feedbacks.length > 0 ? (
-                      <div>
-                        {feedbacks.map((feedback) => (
-                          <FeedbackListItem
-                            key={feedback.id}
-                            id={feedback.id}
-                            userName={feedback.userName}
-                            rating={feedback.rating}
-                            date={feedback.date}
-                            feedback={feedback.feedback}
-                            attachments={feedback.attachments}
-                            upvotes={feedback.upvotes}
-                            downvotes={feedback.downvotes}
-                            isVerified={feedback.isVerified}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="py-12 text-center text-muted-foreground">
-                        No feedback has been submitted yet
-                      </div>
-                    )}
-                  </ScrollArea>
-                </CardContent>
-              </Card>
+              {campaign && <FeedbackList campaignId={campaign._id} />}
             </TabsContent>
           </Tabs>
         </div>
