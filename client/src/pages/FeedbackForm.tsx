@@ -221,6 +221,12 @@ const FeedbackForm = () => {
 
         // Refresh feedbacks list
         fetchFeedbacks();
+
+        // Reset the form
+        setRating(0);
+        setFeedback("");
+        setFiles(null);
+        setIsAnonymous(false);
       } else {
         // Error from API
         toast({
@@ -236,12 +242,6 @@ const FeedbackForm = () => {
           err?.response?.data?.message || "Failed to update feedback",
         variant: "destructive",
       });
-    } finally {
-      setRating(0);
-      setFeedback("");
-      setFiles(null);
-      setIsAnonymous(false);
-      fetchUserFeedback();
     }
   };
 
@@ -341,6 +341,7 @@ const FeedbackForm = () => {
         // Refresh feedbacks list
         setActiveTab("feedbacks");
         fetchFeedbacks();
+        fetchUserFeedback();
       } else {
         // Error from API
         toast({
