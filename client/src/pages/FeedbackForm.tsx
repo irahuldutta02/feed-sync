@@ -137,6 +137,7 @@ const FeedbackForm = () => {
     setFeedback(userFeedback?.feedback || "");
     setIsEditMode(false);
     setFiles(null);
+    setFileArray([]);
     setFilePreviewUrls([]);
   };
   const handleUpdate = async (e: React.FormEvent) => {
@@ -194,7 +195,6 @@ const FeedbackForm = () => {
 
       // Dismiss loading toast
       dismissLoadingToast();
-
       if (response?.data?.error === false) {
         // Success
         toast({
@@ -202,16 +202,19 @@ const FeedbackForm = () => {
           description: "Your feedback has been updated successfully.",
         });
 
-        // Reset edit mode
-        setIsEditMode(false);
-
         // Update user feedback state with new data
         setUserFeedback(response.data.data);
 
-        // Refresh user feedback
-        fetchUserFeedback(); // Reset form
+        // Reset form
         setFiles(null);
+        setFileArray([]);
         setFilePreviewUrls([]);
+
+        // Reset edit mode
+        setIsEditMode(false);
+
+        // First fetch the updated user feedback
+        await fetchUserFeedback();
 
         // Switch to feedbacks tab to see all feedbacks including the updated one
         setActiveTab("feedbacks");
@@ -258,12 +261,11 @@ const FeedbackForm = () => {
         toast({
           title: "Feedback deleted!",
           description: "Your feedback has been deleted successfully.",
-        });
-
-        // Reset form and states
+        }); // Reset form and states
         setRating(0);
         setFeedback("");
         setFiles(null);
+        setFileArray([]);
         setIsAnonymous(false);
         setUserFeedback(null);
         setIsEditMode(false);
@@ -367,22 +369,26 @@ const FeedbackForm = () => {
 
       // Dismiss loading toast
       dismissLoadingToast();
-
       if (response?.data?.error === false) {
         // Success
         toast({
           title: "Feedback submitted!",
           description: "Thank you for your feedback.",
-        }); // Reset form
+        });
+
+        // Reset form
         setRating(0);
         setFeedback("");
         setFiles(null);
+        setFileArray([]);
         setIsAnonymous(false);
         setFilePreviewUrls([]);
 
+        // First fetch the user feedback and then switch to the feedbacks tab
+        await fetchUserFeedback();
+
         // Switch to feedbacks tab to see all feedbacks including the new one
         setActiveTab("feedbacks");
-        fetchUserFeedback();
       } else {
         // Error from API
         toast({
