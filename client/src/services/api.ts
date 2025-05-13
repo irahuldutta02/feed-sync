@@ -15,7 +15,16 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    // Don't redirect
+    const isUserFeedbackCall = error.config?.url?.includes(
+      "/feedback/user-feedback/"
+    );
+
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      !isUserFeedbackCall
+    ) {
       console.error("API Error: Unauthorized (401)");
       localStorage.removeItem("authToken");
       localStorage.removeItem("user");

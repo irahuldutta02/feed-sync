@@ -108,7 +108,6 @@ const FeedbackForm = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campaign?._id, isAuthenticated, user?._id]);
-
   const fetchUserFeedback = async () => {
     try {
       const response = await api.get(`/feedback/user-feedback/${campaign._id}`);
@@ -118,8 +117,18 @@ const FeedbackForm = () => {
         setFeedbackId(response.data.data._id);
       }
     } catch (err) {
+      // Check if it's a 401 error - this is normal for campaigns that allow anonymous feedback
+      if (err?.response?.status === 401) {
+        // Just clear the user feedback state, no need to do anything else
+        setUserFeedback(null);
+        setFeedbackId("");
+      } else {
+        // Some other error
+        console.log(
+          err?.response?.data?.message || "No existing feedback found"
+        );
+      }
       // No feedback found - that's ok, we'll show the form
-      console.log(err?.response?.data?.message || "No existing feedback found");
     }
   };
 
@@ -213,11 +222,17 @@ const FeedbackForm = () => {
         // Reset edit mode
         setIsEditMode(false);
 
-        // First fetch the updated user feedback
-        await fetchUserFeedback();
-
-        // Switch to feedbacks tab to see all feedbacks including the updated one
+        // Switch to feedbacks tab first
         setActiveTab("feedbacks");
+
+        // Then try to fetch user feedback, but don't await it
+        // to avoid potential 401 errors blocking the tab switch
+        try {
+          fetchUserFeedback();
+        } catch (err) {
+          // Just ignore any errors here
+          console.log("Could not fetch updated user feedback", err);
+        }
       } else {
         // Error from API
         toast({
@@ -384,11 +399,17 @@ const FeedbackForm = () => {
         setIsAnonymous(false);
         setFilePreviewUrls([]);
 
-        // First fetch the user feedback and then switch to the feedbacks tab
-        await fetchUserFeedback();
-
-        // Switch to feedbacks tab to see all feedbacks including the new one
+        // Switch to feedbacks tab first
         setActiveTab("feedbacks");
+
+        // Then try to fetch user feedback, but don't await it
+        // to avoid potential 401 errors blocking the tab switch
+        try {
+          fetchUserFeedback();
+        } catch (err) {
+          // Just ignore any errors here
+          console.log("Could not fetch updated user feedback", err);
+        }
       } else {
         // Error from API
         toast({
