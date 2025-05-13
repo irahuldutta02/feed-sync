@@ -11,11 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import api from "@/services/api";
 import { useEffect, useState } from "react";
 
-interface FeedbackListProps {
-  campaignId: string;
-}
-
-const FeedbackList = ({ campaignId }: FeedbackListProps) => {
+const FeedbackList = ({ campaignId }) => {
   const [feedbacks, setFeedbacks] = useState([]);
   const [feedbackLoading, setFeedbackLoading] = useState(true);
 

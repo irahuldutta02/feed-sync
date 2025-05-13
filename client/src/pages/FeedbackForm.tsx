@@ -1,34 +1,17 @@
 import AnonymousFeedbackToggle from "@/components/feedback/AnonymousFeedbackToggle";
+import CampaignInfo from "@/components/feedback/CampaignInfo";
+import CampaignStats from "@/components/feedback/CampaignStats";
+import FeedbackFormComponent from "@/components/feedback/FeedbackFormComponent";
 import FeedbackList from "@/components/feedback/FeedbackList";
+import UserFeedbackView from "@/components/feedback/UserFeedbackView";
 import FooterCommon from "@/components/ui-custom/FooterCommon";
 import { LoginCard } from "@/components/ui-custom/LoginCard";
 import { Logo } from "@/components/ui-custom/Logo";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import api from "@/services/api";
-import { formatDistanceToNow } from "date-fns";
-import {
-  Link as LinkIcon,
-  Pencil,
-  Share,
-  Star,
-  Trash2,
-  Upload,
-  X,
-} from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
@@ -42,29 +25,31 @@ const FeedbackForm = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
-  const [files, setFiles] = useState<FileList | null>(null);
-  const [fileArray, setFileArray] = useState<File[]>([]);
+  const [files, setFiles] = useState(null);
+  const [fileArray, setFileArray] = useState([]);
   const [isAnonymous, setIsAnonymous] = useState(!isAuthenticated); // Set to true by default for logged-out users
   const [hoveredStar, setHoveredStar] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [filePreviewUrls, setFilePreviewUrls] = useState<
-    { url: string; file: File }[]
-  >([]);
+  const [filePreviewUrls, setFilePreviewUrls] = useState([]);
 
   // States for user feedback and edit mode
   const [userFeedback, setUserFeedback] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [feedbackId, setFeedbackId] = useState("");
-
+  // Load campaign data
   useEffect(() => {
     const fetchCampaign = async () => {
       try {
         setLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-
         const response = await api.get(`/campaign/detail/${slug}`);
-        const data = response?.data;
-        setCampaign(data?.data);
+
+        if (response?.data?.error === false) {
+          setCampaign(response.data.data);
+        } else {
+          setError(
+            response?.data?.message || "Failed to load campaign details"
+          );
+        }
       } catch (err) {
         setError(
           err?.response?.data?.message || "Failed to load campaign details"
@@ -75,7 +60,7 @@ const FeedbackForm = () => {
     };
 
     fetchCampaign();
-  }, [slug, user]);
+  }, [slug]);
 
   useEffect(() => {
     const fetchCampaign = async () => {
@@ -539,10 +524,10 @@ const FeedbackForm = () => {
       </div>
     );
   }
-
   return (
     <>
       <div className="min-h-screen bg-background pb-12">
+        {/* Campaign Banner */}
         <div
           className="relative h-64 bg-cover bg-center bg-no-repeat shadow-md"
           style={{
@@ -555,6 +540,7 @@ const FeedbackForm = () => {
           </div>
         </div>
 
+        {/* Main Content */}
         <div className="container mx-auto px-4 sm:px-6 py-6 -mt-10 pt-20">
           <Tabs
             value={activeTab}
@@ -567,52 +553,18 @@ const FeedbackForm = () => {
             </TabsList>
 
             <TabsContent value="overview">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 ">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Campaign Info + Feedback Form */}
                 <div className="lg:col-span-2 relative">
                   <Card className="bg-card shadow-lg">
-                    <CardHeader>
-                      <CardTitle>{campaign.title}</CardTitle>
-                      <CardDescription>
-                        {formatDistanceToNow(new Date(campaign.createdAt), {
-                          addSuffix: true,
-                        })}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <h3 className="text-sm font-medium text-muted-foreground">
-                          Description
-                        </h3>
-                        <p className="mt-1">{campaign.description}</p>
-                      </div>
-                      {campaign.link && (
-                        <div>
-                          <h3 className="text-sm font-medium text-muted-foreground">
-                            Related Link
-                          </h3>
-                          <a
-                            href={campaign.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-1 text-primary hover:underline flex items-center"
-                          >
-                            <LinkIcon className="h-4 w-4 mr-1" />
-                            {campaign.link}
-                          </a>
-                        </div>
-                      )}
-                      <div className="absolute top-0 right-6">
-                        <div className="flex items-center mt-1">
-                          <Button
-                            size="icon"
-                            onClick={copyFeedbackLink}
-                            className="ml-2"
-                          >
-                            <Share className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      {/* feedback form goes here */}{" "}
+                    <CardContent className="p-6 space-y-4">
+                      {/* Campaign Info */}
+                      <CampaignInfo
+                        campaign={campaign}
+                        copyFeedbackLink={copyFeedbackLink}
+                      />
+
+                      {/* Feedback section */}
                       {!isOwner && campaign?.status === "Inactive" && (
                         <div className="py-8 text-center">
                           <div className="bg-yellow-500/10 text-yellow-500 p-4 rounded-md mb-4">
@@ -626,6 +578,7 @@ const FeedbackForm = () => {
                           </div>
                         </div>
                       )}
+
                       {isOwner && campaign?.status === "Active" && (
                         <div className="py-8 text-center">
                           <div className="bg-blue-500/10 text-blue-500 p-4 rounded-md mb-4">
@@ -639,112 +592,18 @@ const FeedbackForm = () => {
                           </div>
                         </div>
                       )}
+
                       {!isOwner && campaign?.status === "Active" && (
                         <>
-                          {/* Check if user has already submitted feedback and is not in edit mode */}
+                          {/* Show user's existing feedback or the form */}
                           {userFeedback && !isEditMode ? (
-                            <div className="py-8">
-                              <div className="bg-green-500/10 text-green-600 p-4 rounded-md mb-4">
-                                <h3 className="font-medium text-lg mb-2">
-                                  Your Feedback
-                                </h3>
-                                <p>
-                                  You've already submitted feedback for this
-                                  campaign.
-                                </p>
-                              </div>
-
-                              <Card className="mt-4">
-                                <CardContent className="pt-6">
-                                  <div className="space-y-4">
-                                    <div>
-                                      <Label className="text-sm font-medium text-muted-foreground">
-                                        Rating
-                                      </Label>
-                                      <div className="flex items-center mt-1">
-                                        {[1, 2, 3, 4, 5].map((star) => (
-                                          <Star
-                                            key={star}
-                                            className={`h-5 w-5 ${
-                                              star <= userFeedback.rating
-                                                ? "text-yellow-500 fill-yellow-500"
-                                                : "text-gray-300"
-                                            }`}
-                                          />
-                                        ))}
-                                        <span className="ml-2 text-sm">
-                                          {userFeedback.rating} star
-                                          {userFeedback.rating !== 1 ? "s" : ""}
-                                        </span>
-                                      </div>
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm font-medium text-muted-foreground">
-                                        Your Feedback
-                                      </Label>
-                                      <p className="mt-1">
-                                        {userFeedback.feedback}
-                                      </p>
-                                    </div>{" "}
-                                    {userFeedback.attachments &&
-                                      userFeedback.attachments.length > 0 && (
-                                        <div>
-                                          <Label className="text-sm font-medium text-muted-foreground">
-                                            Attachments (
-                                            {userFeedback.attachments.length})
-                                          </Label>
-                                          <div className="flex flex-wrap gap-2 mt-1">
-                                            {userFeedback.attachments.map(
-                                              (url, index) => (
-                                                <a
-                                                  key={index}
-                                                  href={url}
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                  className="block w-16 h-16 rounded-md border overflow-hidden relative group"
-                                                >
-                                                  <img
-                                                    src={url}
-                                                    alt={`Attachment ${
-                                                      index + 1
-                                                    }`}
-                                                    className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                                                  />
-                                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                                    <span className="text-white text-xs">
-                                                      View
-                                                    </span>
-                                                  </div>
-                                                </a>
-                                              )
-                                            )}
-                                          </div>
-                                        </div>
-                                      )}
-                                    <div className="flex space-x-2 mt-4">
-                                      <Button
-                                        onClick={handleEditClick}
-                                        className="w-full"
-                                      >
-                                        <Pencil className="h-4 w-4 mr-2" />
-                                        Edit Feedback
-                                      </Button>
-                                      <Button
-                                        onClick={handleDelete}
-                                        variant="destructive"
-                                        className="w-full"
-                                      >
-                                        <Trash2 className="h-4 w-4 mr-2" />
-                                        Delete Feedback
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </div>
+                            <UserFeedbackView
+                              userFeedback={userFeedback}
+                              handleEditClick={handleEditClick}
+                              handleDelete={handleDelete}
+                            />
                           ) : (
                             <>
-                              {/* Show anonymous toggle ONLY when creating new feedback, not when editing */}
                               {campaign?.allowAnonymous && !isEditMode && (
                                 <AnonymousFeedbackToggle
                                   isAnonymous={isAnonymous}
@@ -755,178 +614,28 @@ const FeedbackForm = () => {
                               )}
 
                               {showForm ? (
-                                <form
-                                  onSubmit={
-                                    isEditMode ? handleUpdate : handleSubmit
-                                  }
-                                  className="space-y-6"
-                                >
-                                  <div>
-                                    <Label htmlFor="rating">Rating</Label>
-                                    <div className="flex items-center space-x-1 my-2">
-                                      {[1, 2, 3, 4, 5].map((star) => (
-                                        <button
-                                          key={star}
-                                          type="button"
-                                          className="p-1 focus:outline-none"
-                                          onMouseEnter={() =>
-                                            setHoveredStar(star)
-                                          }
-                                          onMouseLeave={() => setHoveredStar(0)}
-                                          onClick={() => setRating(star)}
-                                        >
-                                          <Star
-                                            className={`h-6 w-6 ${
-                                              star <= (hoveredStar || rating)
-                                                ? "text-yellow-500 fill-yellow-500"
-                                                : "text-muted-foreground"
-                                            }`}
-                                          />
-                                        </button>
-                                      ))}
-                                      {rating > 0 && (
-                                        <span className="ml-2 text-sm text-muted-foreground">
-                                          {rating} star{rating !== 1 ? "s" : ""}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <Label htmlFor="feedback">
-                                      Your Feedback
-                                    </Label>
-                                    <Textarea
-                                      id="feedback"
-                                      rows={5}
-                                      placeholder="Share your thoughts and experiences..."
-                                      value={feedback}
-                                      onChange={(e) =>
-                                        setFeedback(e.target.value)
-                                      }
-                                      required
-                                      className="resize-none bg-background"
-                                    />
-                                  </div>{" "}
-                                  <div>
-                                    {" "}
-                                    <div className="flex items-center mb-1">
-                                      <Label
-                                        htmlFor="attachments"
-                                        className="mr-2"
-                                      >
-                                        Attachments
-                                      </Label>
-                                      <span className="text-xs bg-muted px-2 py-0.5 rounded-md text-muted-foreground">
-                                        Optional
-                                      </span>
-                                    </div>
-                                    <Input
-                                      id="attachments"
-                                      type="file"
-                                      onChange={handleFileChange}
-                                      multiple
-                                      accept="image/*"
-                                      className="mt-1 bg-background"
-                                      disabled={isUploading}
-                                    />{" "}
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      You can upload up to 5 image files (JPG,
-                                      PNG, GIF). Maximum size: 5MB per file.
-                                    </p>
-                                    {files && files.length > 0 && (
-                                      <div className="mt-2">
-                                        <p className="text-xs font-medium text-green-600 mb-2">
-                                          {files.length} file
-                                          {files.length !== 1 ? "s" : ""}{" "}
-                                          selected
-                                        </p>{" "}
-                                        <div className="flex flex-wrap gap-2">
-                                          {filePreviewUrls.map(
-                                            (item, index) => (
-                                              <div
-                                                key={index}
-                                                className="relative w-16 h-16 rounded-md overflow-hidden border group"
-                                              >
-                                                <img
-                                                  src={item.url}
-                                                  alt={`Preview ${index + 1}`}
-                                                  className="w-full h-full object-cover"
-                                                />
-                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                                  <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                      removeFile(index)
-                                                    }
-                                                    className="text-white p-1 rounded-full bg-red-500/80 hover:bg-red-600"
-                                                    disabled={isUploading}
-                                                  >
-                                                    <X className="h-3 w-3" />
-                                                  </button>
-                                                </div>
-                                              </div>
-                                            )
-                                          )}
-                                        </div>
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="sm"
-                                          className="mt-2"
-                                          onClick={() => {
-                                            setFiles(null);
-                                            setFileArray([]);
-                                            setFilePreviewUrls([]);
-                                          }}
-                                          disabled={isUploading}
-                                        >
-                                          <X className="h-4 w-4 mr-1" />
-                                          Clear files
-                                        </Button>
-                                      </div>
-                                    )}
-                                  </div>{" "}
-                                  <div className="flex space-x-2">
-                                    <Button
-                                      type="submit"
-                                      className="w-full"
-                                      disabled={
-                                        isUploading ||
-                                        rating === 0 ||
-                                        feedback.trim() === ""
-                                      }
-                                    >
-                                      {isUploading ? (
-                                        <>
-                                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                                          {isEditMode
-                                            ? "Updating..."
-                                            : "Submitting..."}
-                                        </>
-                                      ) : (
-                                        <>
-                                          {isEditMode
-                                            ? "Update Feedback"
-                                            : "Submit Feedback"}
-                                          {files && files.length > 0 && (
-                                            <Upload className="ml-2 h-4 w-4" />
-                                          )}
-                                        </>
-                                      )}
-                                    </Button>
-                                    {isEditMode && (
-                                      <Button
-                                        type="button"
-                                        className="w-full"
-                                        variant="outline"
-                                        onClick={handleCancelEdit}
-                                        disabled={isUploading}
-                                      >
-                                        Cancel
-                                      </Button>
-                                    )}
-                                  </div>
-                                </form>
+                                <FeedbackFormComponent
+                                  rating={rating}
+                                  setRating={setRating}
+                                  hoveredStar={hoveredStar}
+                                  setHoveredStar={setHoveredStar}
+                                  feedback={feedback}
+                                  setFeedback={setFeedback}
+                                  files={files}
+                                  filePreviewUrls={filePreviewUrls}
+                                  isUploading={isUploading}
+                                  handleSubmit={handleSubmit}
+                                  handleUpdate={handleUpdate}
+                                  handleCancelEdit={handleCancelEdit}
+                                  handleFileChange={handleFileChange}
+                                  removeFile={removeFile}
+                                  clearAllFiles={() => {
+                                    setFiles(null);
+                                    setFileArray([]);
+                                    setFilePreviewUrls([]);
+                                  }}
+                                  isEditMode={isEditMode}
+                                />
                               ) : (
                                 <div className="py-8 text-center">
                                   <div className="bg-primary/10 p-4 rounded-md mb-4">
@@ -942,59 +651,9 @@ const FeedbackForm = () => {
                   </Card>
                 </div>
 
+                {/* Campaign Stats */}
                 <div className="lg:col-span-1">
-                  <Card className="bg-card shadow-lg">
-                    <CardHeader>
-                      <CardTitle>Campaign Stats</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">
-                          Average Rating
-                        </span>
-                        <div className="flex items-center">
-                          <Star className="h-5 w-5 text-yellow-500 fill-yellow-500 mr-1" />
-                          <span className="font-medium">
-                            {campaign.averageRating.toFixed(1)}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">
-                          Total Feedbacks
-                        </span>
-                        <span className="font-medium">
-                          {campaign?.feedbackCount}
-                        </span>
-                      </div>
-
-                      <Separator />
-
-                      <div>
-                        <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                          Created By
-                        </h3>
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
-                            <img
-                              src={campaign?.createdBy?.avatarUrl}
-                              alt={campaign.createdBy.name}
-                              className="rounded-full"
-                            />
-                          </div>
-                          <div className="ml-3">
-                            <p className="font-medium">
-                              {campaign.createdBy.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {campaign.createdBy.email}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <CampaignStats campaign={campaign} />
                 </div>
               </div>
             </TabsContent>

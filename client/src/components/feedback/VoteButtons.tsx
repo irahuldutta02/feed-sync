@@ -1,29 +1,19 @@
-import React, { useState, useEffect } from "react";
-import { ThumbsUp, ThumbsDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import api from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-
-interface VoteButtonsProps {
-  feedbackId: string;
-  initialUpvotes: number;
-  initialDownvotes: number;
-  userInitialVote?: "up" | "down" | null;
-  disabled?: boolean;
-}
+import { cn } from "@/lib/utils";
+import api from "@/services/api";
+import { ThumbsDown, ThumbsUp } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const VoteButtons = ({
   feedbackId,
-  initialUpvotes = 0,
-  initialDownvotes = 0,
-  userInitialVote = null,
-  disabled = false,
-}: VoteButtonsProps) => {
+  initialUpvotes,
+  initialDownvotes,
+  userInitialVote,
+  disabled,
+}) => {
   const { isAuthenticated } = useAuth();
-  const [userVote, setUserVote] = useState<"up" | "down" | null>(
-    userInitialVote
-  );
+  const [userVote, setUserVote] = useState(userInitialVote);
   const [upvotes, setUpvotes] = useState(initialUpvotes);
   const [downvotes, setDownvotes] = useState(initialDownvotes);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,7 +25,7 @@ const VoteButtons = ({
     setUserVote(userInitialVote);
   }, [initialUpvotes, initialDownvotes, userInitialVote]);
 
-  const handleVote = async (action: "upvote" | "downvote") => {
+  const handleVote = async (action) => {
     if (!isAuthenticated) {
       toast({
         title: "Authentication required",

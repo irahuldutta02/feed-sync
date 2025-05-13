@@ -4,22 +4,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 import { Calendar, Image, ShieldCheck, Star } from "lucide-react";
 import VoteButtons from "./VoteButtons";
-import { useAuth } from "@/contexts/AuthContext";
-
-interface FeedbackListItemProps {
-  id: string;
-  userName: string;
-  rating: number;
-  date: string;
-  feedback: string;
-  attachments: string[];
-  upvotes: string[];
-  downvotes: string[];
-  isVerified?: boolean;
-}
 
 const FeedbackListItem = ({
   id,
@@ -31,7 +19,7 @@ const FeedbackListItem = ({
   upvotes = [],
   downvotes = [],
   isVerified,
-}: FeedbackListItemProps) => {
+}) => {
   const { user } = useAuth();
 
   // Determine if the current user has voted
@@ -127,6 +115,7 @@ const FeedbackListItem = ({
             initialUpvotes={upvotes.length}
             initialDownvotes={downvotes.length}
             userInitialVote={userVote}
+            disabled={false}
           />
         </div>
       </CardContent>
