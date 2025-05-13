@@ -1,6 +1,10 @@
 const express = require("express");
 const { protect } = require("../middleware/authMiddleware");
-const { upload, cloudinary } = require("../config/cloudinary");
+const {
+  uploadAvatar,
+  uploadAttachments,
+  cloudinary,
+} = require("../config/cloudinary");
 const User = require("../models/User");
 const asyncHandler = require("express-async-handler");
 
@@ -10,7 +14,7 @@ const uploadRouter = express.Router();
 uploadRouter.post(
   "/avatar",
   protect,
-  upload.single("avatar"),
+  uploadAvatar.single("avatar"),
   asyncHandler(async (req, res) => {
     try {
       if (!req.file) {
@@ -44,6 +48,49 @@ uploadRouter.post(
       res.status(500).json({
         error: true,
         message: error.message || "Failed to upload avatar",
+      });
+    }
+  })
+);
+
+// Upload multiple files for feedback attachments
+uploadRouter.post(
+  "/",
+  uploadAttachments.array("files", 5), // Limit to 5 files per upload
+  asyncHandler(async (req, res) => {
+    try {
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({
+          error: true,
+          message: "No files uploaded",
+        });
+      }
+
+      // Maximum file size: 5MB (check file sizes)
+      const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+      const validFiles = req.files.filter((file) => file.size <= MAX_FILE_SIZE);
+
+      if (validFiles.length < req.files.length) {
+        // Some files were too large
+        return res.status(400).json({
+          error: true,
+          message: "One or more files exceed the maximum size limit of 5MB",
+        });
+      }
+
+      // Get array of Cloudinary URLs from the uploaded files
+      const fileUrls = req.files.map((file) => file.path);
+
+      // Return success with the file URLs
+      res.status(200).json({
+        error: false,
+        message: "Files uploaded successfully",
+        data: fileUrls,
+      });
+    } catch (error) {
+      res.status(500).json({
+        error: true,
+        message: error.message || "Failed to upload files",
       });
     }
   })

@@ -20,7 +20,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import api from "@/services/api";
 import { formatDistanceToNow } from "date-fns";
-import { Link as LinkIcon, Pencil, Share, Star, Trash2 } from "lucide-react";
+import {
+  Link as LinkIcon,
+  Pencil,
+  Share,
+  Star,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
@@ -32,12 +40,16 @@ const FeedbackForm = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
-
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [files, setFiles] = useState<FileList | null>(null);
+  const [fileArray, setFileArray] = useState<File[]>([]);
   const [isAnonymous, setIsAnonymous] = useState(!isAuthenticated); // Set to true by default for logged-out users
   const [hoveredStar, setHoveredStar] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [filePreviewUrls, setFilePreviewUrls] = useState<
+    { url: string; file: File }[]
+  >([]);
 
   // States for user feedback and edit mode
   const [userFeedback, setUserFeedback] = useState(null);
@@ -119,14 +131,14 @@ const FeedbackForm = () => {
       setIsEditMode(true);
     }
   };
-
   const handleCancelEdit = () => {
     // Reset form and exit edit mode
     setRating(userFeedback?.rating || 0);
     setFeedback(userFeedback?.feedback || "");
     setIsEditMode(false);
+    setFiles(null);
+    setFilePreviewUrls([]);
   };
-
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -141,20 +153,19 @@ const FeedbackForm = () => {
 
     try {
       // Show loading state
+      setIsUploading(true);
       const { dismiss: dismissLoadingToast } = toast({
         title: "Updating feedback...",
         description: "Please wait while we process your changes",
-      });
-
-      // Prepare form data for file uploads if needed
+      }); // Prepare form data for file uploads if needed
       let attachmentUrls: string[] = userFeedback.attachments || [];
 
-      if (files && files.length > 0) {
+      if (fileArray.length > 0) {
         // First upload any new files
         const formData = new FormData();
-        for (let i = 0; i < files.length; i++) {
-          formData.append("files", files[i]);
-        }
+        fileArray.forEach((file) => {
+          formData.append("files", file);
+        });
 
         // Assuming you have an endpoint for file uploads
         const uploadResponse = await api.post("/upload", formData, {
@@ -198,10 +209,9 @@ const FeedbackForm = () => {
         setUserFeedback(response.data.data);
 
         // Refresh user feedback
-        fetchUserFeedback();
-
-        // Reset form
+        fetchUserFeedback(); // Reset form
         setFiles(null);
+        setFilePreviewUrls([]);
 
         // Switch to feedbacks tab to see all feedbacks including the updated one
         setActiveTab("feedbacks");
@@ -220,6 +230,8 @@ const FeedbackForm = () => {
           err?.response?.data?.message || "Failed to update feedback",
         variant: "destructive",
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -255,6 +267,7 @@ const FeedbackForm = () => {
         setIsAnonymous(false);
         setUserFeedback(null);
         setIsEditMode(false);
+        setFilePreviewUrls([]);
 
         // Switch to feedbacks tab to see updated list
         setActiveTab("feedbacks");
@@ -299,20 +312,19 @@ const FeedbackForm = () => {
 
     try {
       // Show loading state
+      setIsUploading(true);
       const { dismiss: dismissLoadingToast } = toast({
         title: "Submitting feedback...",
         description: "Please wait while we process your submission",
-      });
-
-      // Prepare form data for file uploads if needed
+      }); // Prepare form data for file uploads if needed
       let attachmentUrls: string[] = [];
 
-      if (files && files.length > 0) {
+      if (fileArray.length > 0) {
         // First upload any files
         const formData = new FormData();
-        for (let i = 0; i < files.length; i++) {
-          formData.append("files", files[i]);
-        }
+        fileArray.forEach((file) => {
+          formData.append("files", file);
+        });
 
         // Assuming you have an endpoint for file uploads
         const uploadResponse = await api.post("/upload", formData, {
@@ -361,13 +373,12 @@ const FeedbackForm = () => {
         toast({
           title: "Feedback submitted!",
           description: "Thank you for your feedback.",
-        });
-
-        // Reset form
+        }); // Reset form
         setRating(0);
         setFeedback("");
         setFiles(null);
         setIsAnonymous(false);
+        setFilePreviewUrls([]);
 
         // Switch to feedbacks tab to see all feedbacks including the new one
         setActiveTab("feedbacks");
@@ -388,12 +399,59 @@ const FeedbackForm = () => {
           err?.response?.data?.message || "Failed to submit feedback",
         variant: "destructive",
       });
+    } finally {
+      setIsUploading(false);
     }
   };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setFiles(e.target.files);
+
+      // Convert FileList to array of File objects
+      const fileArr = Array.from(e.target.files);
+      setFileArray(fileArr);
+
+      // Generate preview URLs for the selected files
+      const previews: { url: string; file: File }[] = [];
+      fileArr.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          previews.push({ url: reader.result as string, file });
+          if (previews.length === fileArr.length) {
+            setFilePreviewUrls(previews);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    } else {
+      setFiles(null);
+      setFileArray([]);
+      setFilePreviewUrls([]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    // Remove the file from previews
+    const newPreviews = [...filePreviewUrls];
+    newPreviews.splice(index, 1);
+    setFilePreviewUrls(newPreviews);
+
+    // Update fileArray
+    const newFileArray = [...fileArray];
+    newFileArray.splice(index, 1);
+    setFileArray(newFileArray);
+
+    // Create a new FileList-like object from the updated array
+    if (newFileArray.length === 0) {
+      setFiles(null);
+    } else {
+      // Since FileList is immutable, we'll need to create a new one from the remaining files
+      // when submitting, we'll use the fileArray instead of files
+      const dataTransfer = new DataTransfer();
+      newFileArray.forEach((file) => {
+        dataTransfer.items.add(file);
+      });
+      setFiles(dataTransfer.files);
     }
   };
 
@@ -593,7 +651,6 @@ const FeedbackForm = () => {
                                         </span>
                                       </div>
                                     </div>
-
                                     <div>
                                       <Label className="text-sm font-medium text-muted-foreground">
                                         Your Feedback
@@ -601,13 +658,13 @@ const FeedbackForm = () => {
                                       <p className="mt-1">
                                         {userFeedback.feedback}
                                       </p>
-                                    </div>
-
+                                    </div>{" "}
                                     {userFeedback.attachments &&
                                       userFeedback.attachments.length > 0 && (
                                         <div>
                                           <Label className="text-sm font-medium text-muted-foreground">
-                                            Attachments
+                                            Attachments (
+                                            {userFeedback.attachments.length})
                                           </Label>
                                           <div className="flex flex-wrap gap-2 mt-1">
                                             {userFeedback.attachments.map(
@@ -617,22 +674,26 @@ const FeedbackForm = () => {
                                                   href={url}
                                                   target="_blank"
                                                   rel="noopener noreferrer"
-                                                  className="block w-16 h-16 rounded border overflow-hidden"
+                                                  className="block w-16 h-16 rounded-md border overflow-hidden relative group"
                                                 >
                                                   <img
                                                     src={url}
                                                     alt={`Attachment ${
                                                       index + 1
                                                     }`}
-                                                    className="w-full h-full object-cover"
+                                                    className="w-full h-full object-cover transition-transform group-hover:scale-110"
                                                   />
+                                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                    <span className="text-white text-xs">
+                                                      View
+                                                    </span>
+                                                  </div>
                                                 </a>
                                               )
                                             )}
                                           </div>
                                         </div>
                                       )}
-
                                     <div className="flex space-x-2 mt-4">
                                       <Button
                                         onClick={handleEditClick}
@@ -703,7 +764,6 @@ const FeedbackForm = () => {
                                       )}
                                     </div>
                                   </div>
-
                                   <div>
                                     <Label htmlFor="feedback">
                                       Your Feedback
@@ -719,12 +779,20 @@ const FeedbackForm = () => {
                                       required
                                       className="resize-none bg-background"
                                     />
-                                  </div>
-
+                                  </div>{" "}
                                   <div>
-                                    <Label htmlFor="attachments">
-                                      Attachments (optional)
-                                    </Label>
+                                    {" "}
+                                    <div className="flex items-center mb-1">
+                                      <Label
+                                        htmlFor="attachments"
+                                        className="mr-2"
+                                      >
+                                        Attachments
+                                      </Label>
+                                      <span className="text-xs bg-muted px-2 py-0.5 rounded-md text-muted-foreground">
+                                        Optional
+                                      </span>
+                                    </div>
                                     <Input
                                       id="attachments"
                                       type="file"
@@ -732,24 +800,92 @@ const FeedbackForm = () => {
                                       multiple
                                       accept="image/*"
                                       className="mt-1 bg-background"
-                                    />
+                                      disabled={isUploading}
+                                    />{" "}
                                     <p className="text-xs text-muted-foreground mt-1">
-                                      You can upload multiple image files (JPG,
-                                      PNG, GIF)
+                                      You can upload up to 5 image files (JPG,
+                                      PNG, GIF). Maximum size: 5MB per file.
                                     </p>
-                                  </div>
-
+                                    {files && files.length > 0 && (
+                                      <div className="mt-2">
+                                        <p className="text-xs font-medium text-green-600 mb-2">
+                                          {files.length} file
+                                          {files.length !== 1 ? "s" : ""}{" "}
+                                          selected
+                                        </p>{" "}
+                                        <div className="flex flex-wrap gap-2">
+                                          {filePreviewUrls.map(
+                                            (item, index) => (
+                                              <div
+                                                key={index}
+                                                className="relative w-16 h-16 rounded-md overflow-hidden border group"
+                                              >
+                                                <img
+                                                  src={item.url}
+                                                  alt={`Preview ${index + 1}`}
+                                                  className="w-full h-full object-cover"
+                                                />
+                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                      removeFile(index)
+                                                    }
+                                                    className="text-white p-1 rounded-full bg-red-500/80 hover:bg-red-600"
+                                                    disabled={isUploading}
+                                                  >
+                                                    <X className="h-3 w-3" />
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            )
+                                          )}
+                                        </div>
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          className="mt-2"
+                                          onClick={() => {
+                                            setFiles(null);
+                                            setFileArray([]);
+                                            setFilePreviewUrls([]);
+                                          }}
+                                          disabled={isUploading}
+                                        >
+                                          <X className="h-4 w-4 mr-1" />
+                                          Clear files
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>{" "}
                                   <div className="flex space-x-2">
                                     <Button
                                       type="submit"
                                       className="w-full"
                                       disabled={
-                                        rating === 0 || feedback.trim() === ""
+                                        isUploading ||
+                                        rating === 0 ||
+                                        feedback.trim() === ""
                                       }
                                     >
-                                      {isEditMode
-                                        ? "Update Feedback"
-                                        : "Submit Feedback"}
+                                      {isUploading ? (
+                                        <>
+                                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                                          {isEditMode
+                                            ? "Updating..."
+                                            : "Submitting..."}
+                                        </>
+                                      ) : (
+                                        <>
+                                          {isEditMode
+                                            ? "Update Feedback"
+                                            : "Submit Feedback"}
+                                          {files && files.length > 0 && (
+                                            <Upload className="ml-2 h-4 w-4" />
+                                          )}
+                                        </>
+                                      )}
                                     </Button>
                                     {isEditMode && (
                                       <Button
@@ -757,6 +893,7 @@ const FeedbackForm = () => {
                                         className="w-full"
                                         variant="outline"
                                         onClick={handleCancelEdit}
+                                        disabled={isUploading}
                                       >
                                         Cancel
                                       </Button>
