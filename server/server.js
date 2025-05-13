@@ -9,6 +9,7 @@ const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 const campaignRouter = require("./routes/campaignRoutes");
 const authRouter = require("./routes/authRoutes");
 const feedbackRouter = require("./routes/feedbackRoutes");
+const uploadRouter = require("./routes/uploadRoutes");
 
 dotenv.config();
 connectDB();
@@ -48,6 +49,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRouter);
 app.use("/api/campaign", campaignRouter);
 app.use("/api/feedback", feedbackRouter);
+app.use("/api/upload", uploadRouter);
 
 app.use(notFound);
 app.use(errorHandler);

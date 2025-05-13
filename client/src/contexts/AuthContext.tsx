@@ -79,7 +79,6 @@ export const AuthProvider = ({ children }) => {
   }, []); // Run only once on mount
 
   const clearError = () => setError(null);
-
   return (
     <AuthContext.Provider
       value={{

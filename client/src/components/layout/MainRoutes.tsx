@@ -1,15 +1,15 @@
 import { useAuth } from "@/contexts/AuthContext";
 import AuthCallbackPage from "@/pages/AuthCallbackPage";
 import Campaigns from "@/pages/Campaigns";
-import CreateCampaign from "@/pages/CreateCampaign";
 import Dashboard from "@/pages/Dashboard";
 import Feedback from "@/pages/Feedback";
 import FeedbackForm from "@/pages/FeedbackForm";
 import Index from "@/pages/Index";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/NotFound";
+import Settings from "@/pages/Settings";
 import Signup from "@/pages/Signup";
-import { Navigate, Outlet, Route, Routes, useRoutes } from "react-router-dom";
+import { Navigate, Outlet, useRoutes } from "react-router-dom";
 
 const Layout = () => {
   return (
@@ -42,6 +42,7 @@ export const MainRoutes = () => {
         { path: "", element: <Dashboard /> },
         { path: "campaigns", element: <Campaigns /> },
         { path: "feedback", element: <Feedback /> },
+        { path: "settings", element: <Settings /> },
       ],
     },
   ];

@@ -140,6 +140,96 @@ const getUserProfile = asyncHandler(async (req, res) => {
   }
 });
 
+const updateUserProfile = asyncHandler(async (req, res) => {
+  const { name, avatarUrl } = req.body;
+
+  if (!name) {
+    res.status(400);
+    throw new Error("Name is required");
+  }
+
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      res.status(404);
+      throw new Error("User not found");
+    }
+
+    user.name = name;
+    if (avatarUrl) {
+      user.avatarUrl = avatarUrl;
+    }
+
+    await user.save();
+
+    res.json({
+      error: false,
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        avatarUrl: user.avatarUrl,
+        createdAt: user.createdAt,
+        googleId: user.googleId,
+        githubId: user.githubId,
+      },
+      message: "Profile updated successfully",
+    });
+  } catch (error) {
+    res.status(500);
+    throw new Error("Failed to update profile: " + error.message);
+  }
+});
+
+const updateUserPassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    res.status(400);
+    throw new Error("All fields are required");
+  }
+
+  if (newPassword.length < 6) {
+    res.status(400);
+    throw new Error("Password must be at least 6 characters long");
+  }
+
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      res.status(404);
+      throw new Error("User not found");
+    }
+
+    // Check if user has password (OAuth users might not)
+    if (!user.password) {
+      res.status(400);
+      throw new Error("Password cannot be changed for OAuth accounts");
+    }
+
+    // Verify current password
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) {
+      res.status(401);
+      throw new Error("Current password is incorrect");
+    }
+
+    // Update password
+    user.password = newPassword;
+    await user.save();
+
+    res.json({
+      error: false,
+      message: "Password updated successfully",
+    });
+  } catch (error) {
+    res.status(500);
+    throw new Error("Failed to update password: " + error.message);
+  }
+});
+
 module.exports = {
   registerUser,
   loginUser,
@@ -148,4 +238,6 @@ module.exports = {
   githubAuth,
   githubCallback,
   getUserProfile,
+  updateUserProfile,
+  updateUserPassword,
 };

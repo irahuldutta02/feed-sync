@@ -7,6 +7,8 @@ const {
   githubAuth,
   githubCallback,
   getUserProfile,
+  updateUserProfile,
+  updateUserPassword,
 } = require("../controllers/authController");
 const { protect } = require("../middleware/authMiddleware");
 
@@ -22,5 +24,7 @@ authRouter.get("/github", githubAuth);
 authRouter.get("/github/callback", githubCallback);
 
 authRouter.get("/profile", protect, getUserProfile);
+authRouter.put("/update-profile", protect, updateUserProfile);
+authRouter.put("/update-password", protect, updateUserPassword);
 
 module.exports = authRouter;
