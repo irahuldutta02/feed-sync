@@ -29,6 +29,8 @@ const registerUser = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       avatarUrl: user.avatarUrl,
+      googleId: user.googleId,
+      githubId: user.githubId,
       token: generateToken(user._id),
     });
   } else {
@@ -52,6 +54,8 @@ const loginUser = asyncHandler((req, res, next) => {
       name: user.name,
       email: user.email,
       avatarUrl: user.avatarUrl,
+      googleId: user.googleId,
+      githubId: user.githubId,
       token: generateToken(user._id),
     });
   })(req, res, next);
@@ -133,6 +137,8 @@ const getUserProfile = asyncHandler(async (req, res) => {
       email: req.user.email,
       avatarUrl: req.user.avatarUrl,
       createdAt: req.user.createdAt,
+      googleId: req.user.googleId,
+      githubId: req.user.githubId,
     });
   } else {
     res.status(404);
