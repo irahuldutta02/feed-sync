@@ -402,16 +402,18 @@ const FeedbackForm = () => {
   if (campaign?.createdBy?._id === user?._id) {
     isOwner = true;
   }
-
   let showForm = false;
 
-  // Show form if authenticated
-  if (isAuthenticated) {
+  // Don't show form if user is the campaign owner
+  if (isOwner) {
+    showForm = false;
+  }
+  // Show form if authenticated and not the owner
+  else if (isAuthenticated) {
     showForm = true;
   }
-
   // Show form if anonymous is allowed and user is anonymous
-  if (!isAuthenticated && campaign?.allowAnonymous && isAnonymous) {
+  else if (!isAuthenticated && campaign?.allowAnonymous && isAnonymous) {
     showForm = true;
   }
 
@@ -498,7 +500,6 @@ const FeedbackForm = () => {
                         </h3>
                         <p className="mt-1">{campaign.description}</p>
                       </div>
-
                       {campaign.link && (
                         <div>
                           <h3 className="text-sm font-medium text-muted-foreground">
@@ -515,7 +516,6 @@ const FeedbackForm = () => {
                           </a>
                         </div>
                       )}
-
                       <div className="absolute top-0 right-6">
                         <div className="flex items-center mt-1">
                           <Button
@@ -527,8 +527,7 @@ const FeedbackForm = () => {
                           </Button>
                         </div>
                       </div>
-
-                      {/* feedback form goes here */}
+                      {/* feedback form goes here */}{" "}
                       {!isOwner && campaign?.status === "Inactive" && (
                         <div className="py-8 text-center">
                           <div className="bg-yellow-500/10 text-yellow-500 p-4 rounded-md mb-4">
@@ -542,7 +541,19 @@ const FeedbackForm = () => {
                           </div>
                         </div>
                       )}
-
+                      {isOwner && campaign?.status === "Active" && (
+                        <div className="py-8 text-center">
+                          <div className="bg-blue-500/10 text-blue-500 p-4 rounded-md mb-4">
+                            <h3 className="font-medium text-lg mb-2">
+                              Campaign Owner
+                            </h3>
+                            <p>
+                              As the creator of this campaign, you cannot submit
+                              feedback to your own campaign.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                       {!isOwner && campaign?.status === "Active" && (
                         <>
                           {/* Check if user has already submitted feedback and is not in edit mode */}
