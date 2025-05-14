@@ -42,6 +42,8 @@ import {
   Loader2,
   Search,
   Star,
+  ThumbsDown,
+  ThumbsUp,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { formatDateTime } from "../util/util";
@@ -648,48 +650,14 @@ const Feedback = () => {
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
                           <div className="flex items-center gap-1">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="text-green-500"
-                            >
-                              <path d="m9 10 4-4 4 4" />
-                              <path d="M6 14h12" />
-                              <path d="M4 18h16" />
-                            </svg>
+                            <ThumbsUp className="h-4 w-4text-green-500 fill-green-500 text-muted-foreground" />
                             <span className="text-sm font-medium text-green-500">
-                              {item.upvotes?.length || 0}
+                              {item.upvotes?.length ?? 0}
                             </span>
-                            {item.downvotes && item.downvotes.length > 0 && (
-                              <>
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="16"
-                                  height="16"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="ml-2 text-red-500"
-                                >
-                                  <path d="m4 14 4 4 4-4" />
-                                  <path d="M6 10h12" />
-                                  <path d="M4 6h16" />
-                                </svg>
-                                <span className="text-sm font-medium text-red-500">
-                                  {item.downvotes.length}
-                                </span>
-                              </>
-                            )}
+                            <ThumbsDown className="h-4 w-4text-red-500 fill-red-500 text-muted-foreground" />
+                            <span className="text-sm font-medium text-red-500">
+                              {item.downvotes?.length ?? 0}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
@@ -817,43 +785,13 @@ const Feedback = () => {
                   </h4>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-green-500 mr-1"
-                      >
-                        <path d="m9 10 4-4 4 4" />
-                        <path d="M6 14h12" />
-                        <path d="M4 18h16" />
-                      </svg>
+                      <ThumbsUp className="h-4 w-4text-green-500 fill-green-500 text-muted-foreground" />
                       <span className="text-green-500 font-medium">
                         {selectedFeedback.upvotes?.length || 0}
                       </span>
                     </div>
                     <div className="flex items-center">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-red-500 mr-1"
-                      >
-                        <path d="m4 14 4 4 4-4" />
-                        <path d="M6 10h12" />
-                        <path d="M4 6h16" />
-                      </svg>
+                      <ThumbsDown className="h-4 w-4text-red-500 fill-red-500 text-muted-foreground" />
                       <span className="text-red-500 font-medium">
                         {selectedFeedback.downvotes?.length || 0}
                       </span>
