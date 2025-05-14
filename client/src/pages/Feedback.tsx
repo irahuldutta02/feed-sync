@@ -1,5 +1,5 @@
-
-import React, { useState, useEffect } from 'react';
+import FeedbackPagination from "@/components/feedback/FeedbackPagination";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,6 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -24,133 +31,245 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import DashboardLayout from '@/components/layout/DashboardLayout';
-import FeedbackPagination from '@/components/feedback/FeedbackPagination';
-import { Calendar, Eye, FileText, Image, Search, Star } from 'lucide-react';
+  getFeedbackList,
+  getUserCampaigns,
+  upvoteDownvoteFeedback,
+} from "@/services/api";
+import {
+  Calendar,
+  Eye,
+  FileText,
+  Image,
+  Loader2,
+  Search,
+  Star,
+} from "lucide-react";
+import React, { useEffect, useState } from "react";
 
-// Sample data
-const feedbackData = [
-  {
-    id: 1,
-    campaignName: "Product Feedback Q3",
-    userName: "Sarah Johnson",
-    userEmail: "sarah.j@example.com",
-    rating: 5,
-    feedback: "I love the new dashboard design! It's much easier to navigate and the reporting features are fantastic. The export options are especially helpful for sharing data with my team. Keep up the great work!",
-    date: "2023-07-28",
-    attachments: [
-      "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158",
-    ],
-  },
-  {
-    id: 2,
-    campaignName: "Product Feedback Q3",
-    userName: "Michael Chen",
-    userEmail: "michael.c@example.com",
-    rating: 4,
-    feedback: "Overall great experience, but I did notice some lag when loading large datasets. The UI is very intuitive though, and I appreciate the new filtering options.",
-    date: "2023-07-26",
-    attachments: [],
-  },
-  {
-    id: 3,
-    campaignName: "Website Redesign Feedback",
-    userName: "Emily Rodriguez",
-    userEmail: "emily.r@example.com",
-    rating: 3,
-    feedback: "The new website looks good, but I'm having trouble finding some of the features that were easier to access in the old design. Maybe consider adding a comprehensive site map or improving the search functionality.",
-    date: "2023-07-25",
-    attachments: [
-      "https://images.unsplash.com/photo-1587614382346-4ec70e388b28",
-      "https://images.unsplash.com/photo-1516321318423-f06f85e504b3",
-    ],
-  },
-  {
-    id: 4,
-    campaignName: "Mobile App Beta Feedback",
-    userName: "David Williams",
-    userEmail: "david.w@example.com",
-    rating: 2,
-    feedback: "I'm experiencing frequent crashes when trying to use the image upload feature. Also, the notification system seems to be delayed. I've attached screenshots of the error messages I'm receiving.",
-    date: "2023-07-24",
-    attachments: [
-      "https://images.unsplash.com/photo-1593642532400-2682810df593",
-    ],
-  },
-  {
-    id: 5,
-    campaignName: "Customer Support Survey",
-    userName: "Olivia Brown",
-    userEmail: "olivia.b@example.com",
-    rating: 5,
-    feedback: "The customer support team was incredibly helpful and resolved my issue quickly. The follow-up was also appreciated and thorough. Special thanks to Alex for going above and beyond!",
-    date: "2023-07-22",
-    attachments: [],
-  },
-  {
-    id: 6,
-    campaignName: "New Feature Evaluation",
-    userName: "James Wilson",
-    userEmail: "james.w@example.com",
-    rating: 4,
-    feedback: "The new collaborative editing feature is a game-changer for our team. It would be great if there was an option to see who is currently viewing a document in real-time.",
-    date: "2023-07-20",
-    attachments: [],
-  },
-];
+// Define the FeedbackItem type that matches server structure
+interface FeedbackItem {
+  _id: string;
+  campaignId: {
+    _id: string;
+    name: string;
+  };
+  createdBy?: {
+    _id: string;
+    name: string;
+    avatarUrl?: string;
+  };
+  anonymous: boolean;
+  rating: number;
+  feedback: string;
+  createdAt: string;
+  attachments: string[];
+  upvotes: string[];
+  downvotes: string[];
+  status: string;
+}
 
 const ITEMS_PER_PAGE = 5;
 
 const Feedback = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [ratingFilter, setRatingFilter] = useState('all');
-  const [campaignFilter, setCampaignFilter] = useState('all');
-  const [selectedFeedback, setSelectedFeedback] = useState<any>(null);
+  const { toast } = useToast();
+
+  // State for API data and loading
+  const [feedbackData, setFeedbackData] = useState<FeedbackItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isUpvoting, setIsUpvoting] = useState(false);
+
+  // Filters and pagination
+  const [searchInputValue, setSearchInputValue] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [ratingFilter, setRatingFilter] = useState("all");
+  const [campaignFilter, setCampaignFilter] = useState("all");
+  const [selectedFeedback, setSelectedFeedback] = useState<FeedbackItem | null>(
+    null
+  );
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortOrder, setSortOrder] = useState("newest");
+  const [hasAttachmentsFilter, setHasAttachmentsFilter] = useState(false);
 
-  // Get unique campaign names for the filter
-  const campaigns = Array.from(new Set(feedbackData.map(item => item.campaignName)));
-
-  // Apply filters
-  const filteredFeedback = feedbackData.filter(item => {
-    // Text search
-    const matchesSearch = 
-      item.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.feedback.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.campaignName.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Rating filter
-    const matchesRating = ratingFilter === 'all' || item.rating === parseInt(ratingFilter);
-    
-    // Campaign filter
-    const matchesCampaign = campaignFilter === 'all' || item.campaignName === campaignFilter;
-    
-    return matchesSearch && matchesRating && matchesCampaign;
-  });
-
-  // Paginate the filtered feedback
-  const paginatedFeedback = filteredFeedback.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+  // Campaign list for the dropdown
+  const [campaigns, setCampaigns] = useState<{ id: string; name: string }[]>(
+    []
   );
 
-  // Calculate total pages
-  const totalPages = Math.ceil(filteredFeedback.length / ITEMS_PER_PAGE);
+  // Debounce search input to avoid frequent API calls
+  const debouncedSearch = useDebounce((value: string) => {
+    setSearchQuery(value);
+  }, 500);
 
-  // Reset to first page when filters change
+  // Handle search input changes
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Update the input value immediately for UI feedback
+    setSearchInputValue(value);
+    // Debounce the actual search query update
+    debouncedSearch(value);
+  };
+
+  // Fix the main useEffect for fetching data
+  useEffect(() => {
+    // Only fetch if we have campaigns
+    if (campaigns.length > 0) {
+      if (campaignFilter === "all" && campaigns.length > 1) {
+        // In "All My Campaigns" mode with multiple campaigns
+        fetchAllCampaignsFeedback();
+      } else {
+        // Single campaign mode or only one campaign exists
+        fetchFeedback();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    currentPage,
+    ratingFilter,
+    campaignFilter,
+    sortOrder,
+    hasAttachmentsFilter,
+    searchQuery,
+    campaigns.length,
+  ]);
+
+  useEffect(() => {
+    const fetchCampaigns = async () => {
+      try {
+        const response = await getUserCampaigns();
+        if (response.data && Array.isArray(response.data)) {
+          const formattedCampaigns = response.data.map((campaign) => ({
+            id: campaign._id,
+            name: campaign.title || campaign.name, // Support both title and name
+          }));
+
+          if (formattedCampaigns.length > 0) {
+            setCampaigns(formattedCampaigns);
+
+            // Don't automatically select a campaign by default
+            // This allows the "All My Campaigns" option to work
+            // The API handler will use the first campaign when "all" is selected
+          } else {
+            setCampaigns([]);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching campaigns:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load campaigns",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchCampaigns();
+  }, [toast]);
+
+  // Flag to track when we're loading data from multiple campaigns
+  const [isFetchingAllCampaigns, setIsFetchingAllCampaigns] = useState(false);
+
+  // Handle upvote/downvote
+  const handleVote = async (
+    feedbackId: string,
+    action: "upvote" | "downvote"
+  ) => {
+    if (isUpvoting) return;
+
+    setIsUpvoting(true);
+    try {
+      await upvoteDownvoteFeedback(feedbackId, action);
+
+      // Update the selected feedback if it's currently open in the modal
+      if (selectedFeedback && selectedFeedback._id === feedbackId) {
+        const userId = JSON.parse(localStorage.getItem("user") || "{}")._id;
+        const updatedSelectedFeedback = { ...selectedFeedback };
+
+        // Handle upvote logic
+        if (action === "upvote") {
+          // Remove from downvotes if present
+          updatedSelectedFeedback.downvotes =
+            updatedSelectedFeedback.downvotes.filter((id) => id !== userId);
+
+          // Toggle upvote
+          if (updatedSelectedFeedback.upvotes.includes(userId)) {
+            updatedSelectedFeedback.upvotes =
+              updatedSelectedFeedback.upvotes.filter((id) => id !== userId);
+          } else {
+            updatedSelectedFeedback.upvotes.push(userId);
+          }
+        }
+
+        // Handle downvote logic
+        if (action === "downvote") {
+          // Remove from upvotes if present
+          updatedSelectedFeedback.upvotes =
+            updatedSelectedFeedback.upvotes.filter((id) => id !== userId);
+
+          // Toggle downvote
+          if (updatedSelectedFeedback.downvotes.includes(userId)) {
+            updatedSelectedFeedback.downvotes =
+              updatedSelectedFeedback.downvotes.filter((id) => id !== userId);
+          } else {
+            updatedSelectedFeedback.downvotes.push(userId);
+          }
+        }
+
+        setSelectedFeedback(updatedSelectedFeedback);
+      }
+
+      // Refetch data to get updated vote counts
+      fetchFeedback();
+      toast({
+        title: "Success",
+        description: `Feedback ${
+          action === "upvote" ? "upvoted" : "downvoted"
+        } successfully`,
+      });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : `Failed to ${action} feedback`;
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpvoting(false);
+    }
+  };
+
+  // Calculate total pages
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, ratingFilter, campaignFilter]);
+  }, [
+    searchQuery,
+    ratingFilter,
+    campaignFilter,
+    sortOrder,
+    hasAttachmentsFilter,
+  ]);
 
-  const handleViewDetails = (feedback: any) => {
+  // Add debounce to search input
+  useEffect(() => {
+    if (campaigns.length === 0) return;
+
+    const timeoutId = setTimeout(() => {
+      fetchFeedback();
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
+
+  const handleViewDetails = (feedback: FeedbackItem) => {
     setSelectedFeedback(feedback);
     setDetailsOpen(true);
   };
@@ -158,7 +277,239 @@ const Feedback = () => {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     // Scroll to top of table on page change
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Format date string
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  // First, let's fix the fetchFeedback function to handle filters properly
+  const fetchFeedback = async (
+    specificCampaignId?: string,
+    isAllCampaignsMode = false
+  ) => {
+    if (!isAllCampaignsMode) {
+      setLoading(true);
+    } else {
+      setIsFetchingAllCampaigns(true);
+    }
+    setError(null);
+
+    try {
+      // Build query parameters
+      const params: Record<string, string | number> = {
+        page: currentPage,
+        limit: ITEMS_PER_PAGE,
+      };
+
+      // Add rating filter
+      if (ratingFilter !== "all") {
+        params.rating = parseInt(ratingFilter);
+      }
+
+      // Add campaign filter (required by the API)
+      if (campaigns.length === 0) {
+        // No campaigns available yet, can't fetch feedback
+        setFeedbackData([]);
+        setTotalCount(0);
+        setLoading(false);
+        setIsFetchingAllCampaigns(false);
+        return;
+      }
+
+      // If a specific campaign is selected or provided, use it
+      if (specificCampaignId) {
+        params.campaignId = specificCampaignId;
+      } else if (campaignFilter !== "all") {
+        params.campaignId = campaignFilter;
+      } else if (campaigns.length > 0) {
+        params.campaignId = campaigns[0].id;
+      }
+
+      // Add sort order
+      if (sortOrder === "newest") {
+        params.sort = "-createdAt";
+      } else if (sortOrder === "oldest") {
+        params.sort = "createdAt";
+      } else if (sortOrder === "top-rated") {
+        params.sort = "-rating";
+      } else if (sortOrder === "most-upvoted") {
+        params.sort = "-upvotes";
+      }
+
+      // Add search query
+      if (searchQuery) {
+        params.search = searchQuery;
+      }
+
+      const response = await getFeedbackList(params);
+
+      // Apply client-side filters
+      let filteredData = response.data;
+
+      // Client-side filter by attachments
+      if (hasAttachmentsFilter) {
+        filteredData = filteredData.filter(
+          (item) => item.attachments && item.attachments.length > 0
+        );
+      }
+
+      setFeedbackData(filteredData);
+      // Use the total from pagination for server-side pagination
+      setTotalCount(response.pagination.total);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to load feedback data";
+
+      // Check if the error message contains the campaign ID error
+      const campaignIdRequired =
+        (error instanceof Error &&
+          error.message.includes("Campaign ID is required")) ||
+        /campaign.*id.*required/i.test(errorMessage);
+
+      console.error("Error fetching feedback:", error);
+
+      // Set appropriate error message
+      if (campaignIdRequired) {
+        setError("Please select a campaign to view feedback.");
+      } else {
+        setError("Failed to load feedback data. Please try again.");
+      }
+
+      toast({
+        title: "Error",
+        description: campaignIdRequired
+          ? "Please select a campaign to view feedback"
+          : errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      setIsFetchingAllCampaigns(false);
+    }
+  };
+
+  // Now let's fix the fetchAllCampaignsFeedback function for proper pagination
+  const fetchAllCampaignsFeedback = async () => {
+    setLoading(true);
+    setIsFetchingAllCampaigns(true);
+    setError(null);
+
+    try {
+      // If no campaigns, return early
+      if (campaigns.length === 0) {
+        setFeedbackData([]);
+        setTotalCount(0);
+        setLoading(false);
+        return;
+      }
+
+      // Create base params for all requests
+      const baseParams: Record<string, string | number> = {
+        // Get more data for client-side pagination
+        limit: 100, // Increased limit to get more data at once
+      };
+
+      // Add rating filter
+      if (ratingFilter !== "all") {
+        baseParams.rating = parseInt(ratingFilter);
+      }
+
+      // Add sort order
+      if (sortOrder === "newest") {
+        baseParams.sort = "-createdAt";
+      } else if (sortOrder === "oldest") {
+        baseParams.sort = "createdAt";
+      } else if (sortOrder === "top-rated") {
+        baseParams.sort = "-rating";
+      } else if (sortOrder === "most-upvoted") {
+        baseParams.sort = "-upvotes";
+      }
+
+      // Add search query
+      if (searchQuery) {
+        baseParams.search = searchQuery;
+      }
+
+      // Make a request for each campaign and collect results
+      let allFeedbacks: FeedbackItem[] = [];
+
+      // Only fetch for the first 5 campaigns to avoid too many requests
+      const campaignsToFetch = campaigns.slice(0, 5);
+
+      const promises = campaignsToFetch.map((campaign) => {
+        const params = { ...baseParams, campaignId: campaign.id };
+        return getFeedbackList(params);
+      });
+
+      const results = await Promise.all(promises);
+
+      // Combine results
+      results.forEach((result) => {
+        if (result?.data && Array.isArray(result.data)) {
+          allFeedbacks = [...allFeedbacks, ...result.data];
+        }
+      });
+
+      // Sort the combined data
+      if (sortOrder === "newest") {
+        allFeedbacks.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      } else if (sortOrder === "oldest") {
+        allFeedbacks.sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+      } else if (sortOrder === "top-rated") {
+        allFeedbacks.sort((a, b) => b.rating - a.rating);
+      } else if (sortOrder === "most-upvoted") {
+        allFeedbacks.sort(
+          (a, b) => (b.upvotes?.length || 0) - (a.upvotes?.length || 0)
+        );
+      }
+
+      // Client-side filter by attachments
+      if (hasAttachmentsFilter) {
+        allFeedbacks = allFeedbacks.filter(
+          (item) => item.attachments && item.attachments.length > 0
+        );
+      }
+
+      // Store the total count before pagination
+      const totalItems = allFeedbacks.length;
+
+      // Paginate on client-side
+      const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+      const endIdx = startIdx + ITEMS_PER_PAGE;
+      const paginatedResults = allFeedbacks.slice(startIdx, endIdx);
+
+      setFeedbackData(paginatedResults);
+      setTotalCount(totalItems); // Use the total count of filtered items
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to load feedback data";
+
+      console.error("Error fetching all campaigns feedback:", error);
+
+      setError("Failed to load feedback data. Please try again.");
+
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      setIsFetchingAllCampaigns(false);
+    }
   };
 
   return (
@@ -170,14 +521,18 @@ const Feedback = () => {
             View and analyze feedback from your campaigns.
           </p>
         </div>
-        
+
         <Card>
           <CardHeader className="pb-3">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <CardTitle>All Feedback</CardTitle>
                 <CardDescription>
-                  Viewing {filteredFeedback.length} of {feedbackData.length} feedback responses
+                  Viewing {feedbackData.length} of {totalCount} feedback
+                  responses
+                  {campaignFilter === "all" && campaigns.length > 1
+                    ? " across all campaigns"
+                    : ""}
                 </CardDescription>
               </div>
               <div className="w-full sm:w-auto">
@@ -186,8 +541,8 @@ const Feedback = () => {
                   <Input
                     placeholder="Search feedback..."
                     className="pl-8 w-full sm:w-64"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    value={searchInputValue}
+                    onChange={handleSearchChange}
                   />
                 </div>
               </div>
@@ -213,27 +568,82 @@ const Feedback = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
-              <div className="w-full sm:w-64">
+
+              <div className="w-full sm:w-48">
                 <label className="text-sm font-medium text-muted-foreground block mb-2">
                   Filter by Campaign
                 </label>
-                <Select value={campaignFilter} onValueChange={setCampaignFilter}>
+                <Select
+                  value={campaignFilter}
+                  onValueChange={setCampaignFilter}
+                  disabled={campaigns.length === 0}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="All Campaigns" />
+                    <SelectValue
+                      placeholder={
+                        campaigns.length === 0
+                          ? "Loading campaigns..."
+                          : "Select Campaign"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Campaigns</SelectItem>
-                    {campaigns.map((campaign) => (
-                      <SelectItem key={campaign} value={campaign}>
-                        {campaign}
+                    {campaigns.length > 0 ? (
+                      <>
+                        <SelectItem value="all">All My Campaigns</SelectItem>
+                        {campaigns.map((campaign) => (
+                          <SelectItem key={campaign.id} value={campaign.id}>
+                            {campaign.name}
+                          </SelectItem>
+                        ))}
+                      </>
+                    ) : (
+                      <SelectItem value="all" disabled>
+                        No campaigns found
                       </SelectItem>
-                    ))}
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="w-full sm:w-48">
+                <label className="text-sm font-medium text-muted-foreground block mb-2">
+                  Sort By
+                </label>
+                <Select value={sortOrder} onValueChange={setSortOrder}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sort Order" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="oldest">Oldest First</SelectItem>
+                    <SelectItem value="top-rated">Top Rated</SelectItem>
+                    <SelectItem value="most-upvoted">Most Upvoted</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
-            
+
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={hasAttachmentsFilter ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setHasAttachmentsFilter(!hasAttachmentsFilter)}
+                  className="h-8"
+                >
+                  <Image className="h-4 w-4 mr-1" />
+                  With Attachments
+                </Button>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Viewing {feedbackData.length} of {totalCount} feedback responses
+                {campaignFilter === "all" && campaigns.length > 1
+                  ? " across all campaigns"
+                  : ""}
+              </div>
+            </div>
+
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
@@ -242,20 +652,53 @@ const Feedback = () => {
                     <TableHead>Rating</TableHead>
                     <TableHead className="hidden md:table-cell">Date</TableHead>
                     <TableHead>Feedback Preview</TableHead>
+                    <TableHead className="hidden lg:table-cell">
+                      Engagement
+                    </TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedFeedback.length > 0 ? (
-                    paginatedFeedback.map((item) => (
-                      <TableRow key={item.id}>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        <div className="flex justify-center items-center">
+                          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                          <span>
+                            {isFetchingAllCampaigns
+                              ? "Loading feedback from all campaigns..."
+                              : "Loading feedback data..."}
+                          </span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : error ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="text-center py-8 text-red-500"
+                      >
+                        {error}
+                      </TableCell>
+                    </TableRow>
+                  ) : feedbackData.length > 0 ? (
+                    feedbackData.map((item) => (
+                      <TableRow key={item._id}>
                         <TableCell className="font-medium">
-                          {item.userName === "Anonymous" ? (
-                            <span className="italic text-muted-foreground">Anonymous</span>
+                          {item.anonymous ? (
+                            <span className="italic text-muted-foreground">
+                              Anonymous
+                            </span>
+                          ) : item.createdBy ? (
+                            item.createdBy.name
                           ) : (
-                            item.userName
+                            <span className="italic text-muted-foreground">
+                              Unknown User
+                            </span>
                           )}
-                          <div className="text-xs text-muted-foreground">{item.campaignName}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {item.campaignId.name}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex">
@@ -264,25 +707,74 @@ const Feedback = () => {
                                 key={i}
                                 className={`h-4 w-4 ${
                                   i < item.rating
-                                    ? 'text-yellow-500 fill-yellow-500'
-                                    : 'text-gray-300 dark:text-gray-600'
+                                    ? "text-yellow-500 fill-yellow-500"
+                                    : "text-gray-300 dark:text-gray-600"
                                 }`}
                               />
                             ))}
                           </div>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
-                          {item.date}
+                          {formatDate(item.createdAt)}
                         </TableCell>
                         <TableCell className="max-w-[300px] truncate">
                           <div className="flex items-center space-x-1">
                             {item.feedback.substring(0, 60)}
                             {item.feedback.length > 60 && "..."}
-                            {item.attachments.length > 0 && (
-                              <span className="inline-flex items-center text-muted-foreground">
-                                <Image className="h-3 w-3 ml-1" />
-                                <span className="text-xs ml-0.5">{item.attachments.length}</span>
-                              </span>
+                            {item.attachments &&
+                              item.attachments.length > 0 && (
+                                <span className="inline-flex items-center text-muted-foreground">
+                                  <Image className="h-3 w-3 ml-1" />
+                                  <span className="text-xs ml-0.5">
+                                    {item.attachments.length}
+                                  </span>
+                                </span>
+                              )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <div className="flex items-center gap-1">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="text-green-500"
+                            >
+                              <path d="m9 10 4-4 4 4" />
+                              <path d="M6 14h12" />
+                              <path d="M4 18h16" />
+                            </svg>
+                            <span className="text-sm font-medium text-green-500">
+                              {item.upvotes?.length || 0}
+                            </span>
+                            {item.downvotes && item.downvotes.length > 0 && (
+                              <>
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  className="ml-2 text-red-500"
+                                >
+                                  <path d="m4 14 4 4 4-4" />
+                                  <path d="M6 10h12" />
+                                  <path d="M4 6h16" />
+                                </svg>
+                                <span className="text-sm font-medium text-red-500">
+                                  {item.downvotes.length}
+                                </span>
+                              </>
                             )}
                           </div>
                         </TableCell>
@@ -300,20 +792,27 @@ const Feedback = () => {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                        {searchQuery || ratingFilter !== 'all' || campaignFilter !== 'all' ? (
-                          "No feedback found with the selected filters"
-                        ) : (
-                          "No feedback found. Create a campaign to start collecting feedback."
-                        )}
+                      <TableCell
+                        colSpan={6}
+                        className="text-center py-6 text-muted-foreground"
+                      >
+                        {searchQuery ||
+                        ratingFilter !== "all" ||
+                        hasAttachmentsFilter
+                          ? "No feedback found with the selected filters"
+                          : campaigns.length === 0
+                          ? "No campaigns found. Create a campaign first to collect feedback."
+                          : campaignFilter === "all" && campaigns.length > 1
+                          ? "No feedback found across any of your campaigns. Share your campaign links to collect feedback."
+                          : "No feedback found for the selected campaign. Share your campaign link to collect feedback."}
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
             </div>
-            
-            {filteredFeedback.length > ITEMS_PER_PAGE && (
+
+            {!loading && !error && totalCount > ITEMS_PER_PAGE && (
               <FeedbackPagination
                 currentPage={currentPage}
                 totalPages={totalPages}
@@ -331,87 +830,224 @@ const Feedback = () => {
             <DialogHeader>
               <DialogTitle>Feedback Details</DialogTitle>
               <DialogDescription>
-                {selectedFeedback.userName === "Anonymous" 
-                  ? "Detailed anonymous feedback" 
-                  : `Detailed feedback submitted by ${selectedFeedback.userName}`}
+                {selectedFeedback.anonymous
+                  ? "Detailed anonymous feedback"
+                  : selectedFeedback.createdBy
+                  ? `Detailed feedback submitted by ${selectedFeedback.createdBy.name}`
+                  : "Detailed feedback"}
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">From</h4>
-                  {selectedFeedback.userName === "Anonymous" ? (
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                    From
+                  </h4>
+                  {selectedFeedback.anonymous ? (
                     <p className="font-medium italic">Anonymous</p>
-                  ) : (
+                  ) : selectedFeedback.createdBy ? (
                     <>
-                      <p className="font-medium">{selectedFeedback.userName}</p>
-                      <p className="text-sm text-muted-foreground">{selectedFeedback.userEmail}</p>
+                      <p className="font-medium">
+                        {selectedFeedback.createdBy.name}
+                      </p>
+                      {selectedFeedback.createdBy.avatarUrl && (
+                        <div className="mt-1">
+                          <img
+                            src={selectedFeedback.createdBy.avatarUrl}
+                            alt="User Avatar"
+                            className="w-8 h-8 rounded-full"
+                          />
+                        </div>
+                      )}
                     </>
+                  ) : (
+                    <p className="font-medium italic">Unknown User</p>
                   )}
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Campaign</h4>
-                  <p>{selectedFeedback.campaignName}</p>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                    Campaign
+                  </h4>
+                  <p>{selectedFeedback.campaignId.name}</p>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Rating</h4>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                    Rating
+                  </h4>
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
                         className={`h-4 w-4 ${
                           i < selectedFeedback.rating
-                            ? 'text-yellow-500 fill-yellow-500'
-                            : 'text-gray-300 dark:text-gray-600'
+                            ? "text-yellow-500 fill-yellow-500"
+                            : "text-gray-300 dark:text-gray-600"
                         }`}
                       />
                     ))}
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Date</h4>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                    Date
+                  </h4>
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
-                    <span>{selectedFeedback.date}</span>
+                    <span>{formatDate(selectedFeedback.createdAt)}</span>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                    Engagement
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-green-500 mr-1"
+                      >
+                        <path d="m9 10 4-4 4 4" />
+                        <path d="M6 14h12" />
+                        <path d="M4 18h16" />
+                      </svg>
+                      <span className="text-green-500 font-medium">
+                        {selectedFeedback.upvotes?.length || 0}
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-red-500 mr-1"
+                      >
+                        <path d="m4 14 4 4 4-4" />
+                        <path d="M6 10h12" />
+                        <path d="M4 6h16" />
+                      </svg>
+                      <span className="text-red-500 font-medium">
+                        {selectedFeedback.downvotes?.length || 0}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-              
+
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">Feedback</h4>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                  Feedback
+                </h4>
                 <div className="p-4 bg-muted/50 rounded-md">
                   <div className="flex items-start space-x-2">
                     <FileText className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                    <p className="whitespace-pre-wrap">{selectedFeedback.feedback}</p>
+                    <p className="whitespace-pre-wrap">
+                      {selectedFeedback.feedback}
+                    </p>
                   </div>
                 </div>
               </div>
-              
-              {selectedFeedback.attachments.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Attachments ({selectedFeedback.attachments.length})</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {selectedFeedback.attachments.map((url, index) => (
-                      <div key={index} className="relative group">
-                        <img 
-                          src={`${url}?w=300&h=200&fit=crop&auto=format`}
-                          alt={`Attachment ${index + 1}`} 
-                          className="w-full h-32 object-cover rounded-md border border-border"
-                        />
-                        <a 
-                          href={url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="absolute inset-0 flex items-center justify-center bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-md"
-                        >
-                          View Full Size
-                        </a>
-                      </div>
-                    ))}
+
+              {selectedFeedback.attachments &&
+                selectedFeedback.attachments.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                      Attachments ({selectedFeedback.attachments.length})
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {selectedFeedback.attachments.map((url, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={`${url}?w=300&h=200&fit=crop&auto=format`}
+                            alt={`Attachment ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-md border border-border"
+                          />
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="absolute inset-0 flex items-center justify-center bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-md"
+                          >
+                            View Full Size
+                          </a>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleVote(selectedFeedback._id, "upvote")}
+                  disabled={isUpvoting}
+                >
+                  {isUpvoting ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-green-500 mr-1"
+                    >
+                      <path d="m9 10 4-4 4 4" />
+                      <path d="M6 14h12" />
+                      <path d="M4 18h16" />
+                    </svg>
+                  )}
+                  Upvote
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleVote(selectedFeedback._id, "downvote")}
+                  disabled={isUpvoting}
+                >
+                  {isUpvoting ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-red-500 mr-1"
+                    >
+                      <path d="m4 14 4 4 4-4" />
+                      <path d="M6 10h12" />
+                      <path d="M4 6h16" />
+                    </svg>
+                  )}
+                  Downvote
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

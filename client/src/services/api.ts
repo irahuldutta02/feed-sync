@@ -45,4 +45,45 @@ export const getUserFeedbackForCampaign = async (campaignId) => {
   }
 };
 
+// Get paginated feedback list with filtering options
+export const getFeedbackList = async (params) => {
+  try {
+    const response = await api.get("/feedback/paginated_list", { params });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching feedback list:", error);
+    throw error;
+  }
+};
+
+// Upvote or downvote a feedback
+export const upvoteDownvoteFeedback = async (feedbackId, action) => {
+  try {
+    const response = await api.put(`/feedback/upvote_downvote/${feedbackId}`, {
+      action,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error upvoting/downvoting feedback:", error);
+    throw error;
+  }
+};
+
+// Get all campaigns for the logged-in user
+export const getUserCampaigns = async () => {
+  try {
+    // Use the paginated_list endpoint with a filter for the current user
+    const response = await api.get("/campaign/paginated_list", {
+      params: {
+        created_by: JSON.parse(localStorage.getItem("user") || "{}")._id,
+        limit: 100, // Get a large number to ensure all campaigns are returned
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching user campaigns:", error);
+    throw error;
+  }
+};
+
 export default api;
