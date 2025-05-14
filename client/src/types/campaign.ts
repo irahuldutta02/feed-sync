@@ -6,11 +6,11 @@ export interface Campaign {
   link?: string;
   slug: string;
   bannerImage: string;
-  avarageRating: number;
+  averageRating: number;
   status: "Draft" | "Active" | "Inactive";
   allowAnonymous: boolean;
   createdAt: string;
-  feedbackCount?: number;
+  feedbackCount: number;
   createdBy?: string;
 }
 

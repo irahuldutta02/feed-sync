@@ -250,7 +250,7 @@ const Campaigns: React.FC = () => {
                                 className="h-4 w-4 text-yellow-500 mr-1"
                                 fill="currentColor"
                               />
-                              {campaign.avarageRating?.toFixed(1) || "0.0"}
+                              {campaign.averageRating?.toFixed(1) || "0.0"}
                             </div>
                           </TableCell>
                           <TableCell>
