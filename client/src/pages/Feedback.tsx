@@ -224,11 +224,6 @@ const Feedback = () => {
         limit: ITEMS_PER_PAGE,
       };
 
-      // Add rating filter
-      if (ratingFilter !== "all") {
-        params.rating = parseInt(ratingFilter);
-      }
-
       // Add campaign filter (required by the API)
       if (campaigns.length === 0) {
         // No campaigns available yet, can't fetch feedback
@@ -257,6 +252,8 @@ const Feedback = () => {
         params.sort = "-rating";
       } else if (sortOrder === "most-upvoted") {
         params.sort = "-upvotes";
+      } else if (sortOrder === "most-downvoted") {
+        params.sort = "-downvotes";
       }
 
       // Add search query
@@ -264,10 +261,23 @@ const Feedback = () => {
         params.search = searchQuery;
       }
 
+      // Add rating filter as a parameter (even though the server might not support it)
+      if (ratingFilter !== "all") {
+        params.rating = parseInt(ratingFilter);
+      }
+
       const response = await getFeedbackList(params);
 
       // Apply client-side filters
       let filteredData = response.data;
+
+      // Client-side filter by rating if needed
+      if (ratingFilter !== "all") {
+        const numericRating = parseInt(ratingFilter);
+        filteredData = filteredData.filter(
+          (item) => item.rating === numericRating
+        );
+      }
 
       // Client-side filter by attachments
       if (hasAttachmentsFilter) {
@@ -277,8 +287,13 @@ const Feedback = () => {
       }
 
       setFeedbackData(filteredData);
-      // Use the total from pagination for server-side pagination
-      setTotalCount(response.pagination.total);
+      // Adjust total count to reflect filtered results for client-side filtering
+      if (ratingFilter !== "all" || hasAttachmentsFilter) {
+        setTotalCount(filteredData.length);
+      } else {
+        // Use the total from pagination for server-side pagination
+        setTotalCount(response.pagination.total);
+      }
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to load feedback data";
@@ -332,11 +347,6 @@ const Feedback = () => {
         limit: 100, // Increased limit to get more data at once
       };
 
-      // Add rating filter
-      if (ratingFilter !== "all") {
-        baseParams.rating = parseInt(ratingFilter);
-      }
-
       // Add sort order
       if (sortOrder === "newest") {
         baseParams.sort = "-createdAt";
@@ -346,11 +356,18 @@ const Feedback = () => {
         baseParams.sort = "-rating";
       } else if (sortOrder === "most-upvoted") {
         baseParams.sort = "-upvotes";
+      } else if (sortOrder === "most-downvoted") {
+        baseParams.sort = "-downvotes";
       }
 
       // Add search query
       if (searchQuery) {
         baseParams.search = searchQuery;
+      }
+
+      // Add rating filter as a parameter (even though the server might not support it)
+      if (ratingFilter !== "all") {
+        baseParams.rating = parseInt(ratingFilter);
       }
 
       // Make a request for each campaign and collect results
@@ -389,6 +406,18 @@ const Feedback = () => {
       } else if (sortOrder === "most-upvoted") {
         allFeedbacks.sort(
           (a, b) => (b.upvotes?.length || 0) - (a.upvotes?.length || 0)
+        );
+      } else if (sortOrder === "most-downvoted") {
+        allFeedbacks.sort(
+          (a, b) => (b.downvotes?.length || 0) - (a.downvotes?.length || 0)
+        );
+      }
+
+      // Apply client-side filter by rating if needed
+      if (ratingFilter !== "all") {
+        const numericRating = parseInt(ratingFilter);
+        allFeedbacks = allFeedbacks.filter(
+          (item) => item.rating === numericRating
         );
       }
 
@@ -535,6 +564,9 @@ const Feedback = () => {
                     <SelectItem value="oldest">Oldest First</SelectItem>
                     <SelectItem value="top-rated">Top Rated</SelectItem>
                     <SelectItem value="most-upvoted">Most Upvoted</SelectItem>
+                    <SelectItem value="most-downvoted">
+                      Most Downvoted
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -650,11 +682,11 @@ const Feedback = () => {
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
                           <div className="flex items-center gap-1">
-                            <ThumbsUp className="h-4 w-4text-green-500 fill-green-500 text-muted-foreground" />
+                            <ThumbsUp className="h-4 w-4 text-green-500 fill-green-500 text-muted-foreground" />
                             <span className="text-sm font-medium text-green-500">
                               {item.upvotes?.length ?? 0}
                             </span>
-                            <ThumbsDown className="h-4 w-4text-red-500 fill-red-500 text-muted-foreground" />
+                            <ThumbsDown className="h-4 w-4 text-red-500 fill-red-500 text-muted-foreground" />
                             <span className="text-sm font-medium text-red-500">
                               {item.downvotes?.length ?? 0}
                             </span>
@@ -785,13 +817,13 @@ const Feedback = () => {
                   </h4>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center">
-                      <ThumbsUp className="h-4 w-4text-green-500 fill-green-500 text-muted-foreground" />
+                      <ThumbsUp className="h-4 w-4 text-green-500 fill-green-500 text-muted-foreground" />
                       <span className="text-green-500 font-medium">
                         {selectedFeedback.upvotes?.length || 0}
                       </span>
                     </div>
                     <div className="flex items-center">
-                      <ThumbsDown className="h-4 w-4text-red-500 fill-red-500 text-muted-foreground" />
+                      <ThumbsDown className="h-4 w-4 text-red-500 fill-red-500 text-muted-foreground" />
                       <span className="text-red-500 font-medium">
                         {selectedFeedback.downvotes?.length || 0}
                       </span>
