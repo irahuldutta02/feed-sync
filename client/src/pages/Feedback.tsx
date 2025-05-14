@@ -33,11 +33,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
-import {
-  getFeedbackList,
-  getUserCampaigns,
-  upvoteDownvoteFeedback,
-} from "@/services/api";
+import { getFeedbackList, getUserCampaigns } from "@/services/api";
 import {
   Calendar,
   Eye,
@@ -48,6 +44,7 @@ import {
   Star,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { formatDateTime } from "../util/util";
 
 // Define the FeedbackItem type that matches server structure
 interface FeedbackItem {
@@ -81,7 +78,6 @@ const Feedback = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
-  const [isUpvoting, setIsUpvoting] = useState(false);
 
   // Filters and pagination
   const [searchInputValue, setSearchInputValue] = useState("");
@@ -174,79 +170,6 @@ const Feedback = () => {
   // Flag to track when we're loading data from multiple campaigns
   const [isFetchingAllCampaigns, setIsFetchingAllCampaigns] = useState(false);
 
-  // Handle upvote/downvote
-  const handleVote = async (
-    feedbackId: string,
-    action: "upvote" | "downvote"
-  ) => {
-    if (isUpvoting) return;
-
-    setIsUpvoting(true);
-    try {
-      await upvoteDownvoteFeedback(feedbackId, action);
-
-      // Update the selected feedback if it's currently open in the modal
-      if (selectedFeedback && selectedFeedback._id === feedbackId) {
-        const userId = JSON.parse(localStorage.getItem("user") || "{}")._id;
-        const updatedSelectedFeedback = { ...selectedFeedback };
-
-        // Handle upvote logic
-        if (action === "upvote") {
-          // Remove from downvotes if present
-          updatedSelectedFeedback.downvotes =
-            updatedSelectedFeedback.downvotes.filter((id) => id !== userId);
-
-          // Toggle upvote
-          if (updatedSelectedFeedback.upvotes.includes(userId)) {
-            updatedSelectedFeedback.upvotes =
-              updatedSelectedFeedback.upvotes.filter((id) => id !== userId);
-          } else {
-            updatedSelectedFeedback.upvotes.push(userId);
-          }
-        }
-
-        // Handle downvote logic
-        if (action === "downvote") {
-          // Remove from upvotes if present
-          updatedSelectedFeedback.upvotes =
-            updatedSelectedFeedback.upvotes.filter((id) => id !== userId);
-
-          // Toggle downvote
-          if (updatedSelectedFeedback.downvotes.includes(userId)) {
-            updatedSelectedFeedback.downvotes =
-              updatedSelectedFeedback.downvotes.filter((id) => id !== userId);
-          } else {
-            updatedSelectedFeedback.downvotes.push(userId);
-          }
-        }
-
-        setSelectedFeedback(updatedSelectedFeedback);
-      }
-
-      // Refetch data to get updated vote counts
-      fetchFeedback();
-      toast({
-        title: "Success",
-        description: `Feedback ${
-          action === "upvote" ? "upvoted" : "downvoted"
-        } successfully`,
-      });
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : `Failed to ${action} feedback`;
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsUpvoting(false);
-    }
-  };
-
-  // Calculate total pages
-  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
-
   useEffect(() => {
     setCurrentPage(1);
   }, [
@@ -278,15 +201,6 @@ const Feedback = () => {
     setCurrentPage(page);
     // Scroll to top of table on page change
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  // Format date string
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
   };
 
   // First, let's fix the fetchFeedback function to handle filters properly
@@ -715,7 +629,7 @@ const Feedback = () => {
                           </div>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
-                          {formatDate(item.createdAt)}
+                          {formatDateTime(item.createdAt)}
                         </TableCell>
                         <TableCell className="max-w-[300px] truncate">
                           <div className="flex items-center space-x-1">
@@ -815,7 +729,7 @@ const Feedback = () => {
             {!loading && !error && totalCount > ITEMS_PER_PAGE && (
               <FeedbackPagination
                 currentPage={currentPage}
-                totalPages={totalPages}
+                totalPages={Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE))}
                 onPageChange={handlePageChange}
               />
             )}
@@ -894,7 +808,7 @@ const Feedback = () => {
                   </h4>
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
-                    <span>{formatDate(selectedFeedback.createdAt)}</span>
+                    <span>{formatDateTime(selectedFeedback.createdAt)}</span>
                   </div>
                 </div>
                 <div>
@@ -989,65 +903,6 @@ const Feedback = () => {
                     </div>
                   </div>
                 )}
-
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleVote(selectedFeedback._id, "upvote")}
-                  disabled={isUpvoting}
-                >
-                  {isUpvoting ? (
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                  ) : (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="text-green-500 mr-1"
-                    >
-                      <path d="m9 10 4-4 4 4" />
-                      <path d="M6 14h12" />
-                      <path d="M4 18h16" />
-                    </svg>
-                  )}
-                  Upvote
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleVote(selectedFeedback._id, "downvote")}
-                  disabled={isUpvoting}
-                >
-                  {isUpvoting ? (
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                  ) : (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="text-red-500 mr-1"
-                    >
-                      <path d="m4 14 4 4 4-4" />
-                      <path d="M6 10h12" />
-                      <path d="M4 6h16" />
-                    </svg>
-                  )}
-                  Downvote
-                </Button>
-              </div>
             </div>
           </DialogContent>
         </Dialog>
