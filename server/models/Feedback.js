@@ -50,18 +50,39 @@ const FeedbackSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
-    status: [
-      {
-        type: String,
-        enum: ["Active", "Deleted"],
-        default: "Active",
-      },
-    ],
+    // Store actual counts to make sorting more efficient
+    upvoteCount: {
+      type: Number,
+      default: 0,
+    },
+    downvoteCount: {
+      type: Number,
+      default: 0,
+    },
+    status: {
+      type: String,
+      enum: ["Active", "Deleted"],
+      default: "Active",
+    },
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
+
+// Pre-save hook to ensure count fields are always in sync with arrays
+FeedbackSchema.pre("save", function (next) {
+  // Update counts if arrays exist
+  if (this.upvotes) {
+    this.upvoteCount = this.upvotes.length;
+  }
+  if (this.downvotes) {
+    this.downvoteCount = this.downvotes.length;
+  }
+  next();
+});
 
 const Feedback = mongoose.model("Feedback", FeedbackSchema);
 

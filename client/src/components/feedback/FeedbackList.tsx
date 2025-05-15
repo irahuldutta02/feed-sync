@@ -22,7 +22,6 @@ import api from "@/services/api";
 import { Image, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 
-// Define a constant for items per page
 const ITEMS_PER_PAGE = 5;
 
 const FeedbackList = ({ campaignId }) => {
@@ -31,11 +30,9 @@ const FeedbackList = ({ campaignId }) => {
   const [feedbackLoading, setFeedbackLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-
-  // Filters and sorting
   const [searchQuery, setSearchQuery] = useState("");
   const [ratingFilter, setRatingFilter] = useState("all");
-  const [sortOrder, setSortOrder] = useState("most-upvoted");
+  const [sortOrder, setSortOrder] = useState("newest");
   const [hasAttachmentsFilter, setHasAttachmentsFilter] = useState(false);
 
   useEffect(() => {
@@ -45,13 +42,11 @@ const FeedbackList = ({ campaignId }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campaignId, currentPage, sortOrder]);
 
-  // Apply filters and sorting when feedbacks change or when filters change
   useEffect(() => {
     applyFiltersAndSort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feedbacks, searchQuery, ratingFilter, hasAttachmentsFilter]);
 
-  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, ratingFilter, hasAttachmentsFilter, sortOrder]);
@@ -59,17 +54,15 @@ const FeedbackList = ({ campaignId }) => {
   const fetchFeedbacks = async () => {
     try {
       setFeedbackLoading(true);
-
-      // Prepare sort parameter based on sortOrder
-      let sortParam = "-createdAt"; // default is newest first
+      let sortParam = "-createdAt";
       if (sortOrder === "oldest") {
         sortParam = "createdAt";
       } else if (sortOrder === "top-rated") {
         sortParam = "-rating";
       } else if (sortOrder === "most-upvoted") {
-        sortParam = "-upvotes";
+        sortParam = "-upvoteCount";
       } else if (sortOrder === "most-downvoted") {
-        sortParam = "-downvotes";
+        sortParam = "-downvoteCount";
       }
 
       const response = await api.get("/feedback/paginated_list", {
@@ -159,11 +152,9 @@ const FeedbackList = ({ campaignId }) => {
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
-    // Scroll to top on page change
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Calculate total pages for pagination
   const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
 
   return (
@@ -189,7 +180,6 @@ const FeedbackList = ({ campaignId }) => {
               </div>
             </div>
           </div>
-
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="w-full sm:w-48">
               <label className="text-sm font-medium text-muted-foreground block mb-2">
@@ -227,8 +217,7 @@ const FeedbackList = ({ campaignId }) => {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
+          </div>{" "}
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Button
@@ -242,7 +231,9 @@ const FeedbackList = ({ campaignId }) => {
               </Button>
             </div>
             <div className="text-sm text-muted-foreground">
-              Showing {filteredFeedbacks.length} of {totalCount} responses
+              {searchQuery || ratingFilter !== "all" || hasAttachmentsFilter
+                ? `Showing ${filteredFeedbacks.length} of ${totalCount} responses (filtered)`
+                : `Showing ${feedbacks.length} of ${totalCount} responses`}
             </div>
           </div>
         </div>
@@ -277,9 +268,11 @@ const FeedbackList = ({ campaignId }) => {
             </div>
           ) : (
             <div className="py-12 text-center text-muted-foreground">
-              {feedbacks.length > 0
-                ? "No feedback matches your current filters"
-                : "No feedback has been submitted yet"}
+              {totalCount > 0
+                ? searchQuery || ratingFilter !== "all" || hasAttachmentsFilter
+                  ? "No feedback matches your current filters"
+                  : "No feedback to display for the current page"
+                : "No feedback has been submitted yet for this campaign"}
             </div>
           )}
         </ScrollArea>

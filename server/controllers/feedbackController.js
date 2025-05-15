@@ -52,7 +52,6 @@ const feedbackCreate = asyncHandler(async (req, res) => {
       message: "Cannot add feedback to inactive campaign",
     });
   }
-
   // Create feedback data object
   const feedbackData = {
     campaignId,
@@ -60,6 +59,8 @@ const feedbackCreate = asyncHandler(async (req, res) => {
     feedback,
     anonymous,
     attachments,
+    upvoteCount: 0, // Initialize upvote count
+    downvoteCount: 0, // Initialize downvote count
   };
 
   if (!campaign?.allowAnonymous && !user) {
@@ -317,7 +318,6 @@ const upvoteDownvoteFeedback = asyncHandler(async (req, res) => {
       message: "Cannot vote on deleted feedback",
     });
   }
-
   // Handle upvote
   if (action === "upvote") {
     // Remove from downvotes if present
@@ -325,6 +325,8 @@ const upvoteDownvoteFeedback = asyncHandler(async (req, res) => {
       feedback.downvotes = feedback.downvotes.filter(
         (id) => id.toString() !== userId.toString()
       );
+      // Decrement downvote count
+      feedback.downvoteCount = Math.max(0, (feedback.downvoteCount || 0) - 1);
     }
 
     // Toggle upvote
@@ -333,9 +335,13 @@ const upvoteDownvoteFeedback = asyncHandler(async (req, res) => {
       feedback.upvotes = feedback.upvotes.filter(
         (id) => id.toString() !== userId.toString()
       );
+      // Decrement upvote count
+      feedback.upvoteCount = Math.max(0, (feedback.upvoteCount || 0) - 1);
     } else {
       // Add upvote
       feedback.upvotes.push(userId);
+      // Increment upvote count
+      feedback.upvoteCount = (feedback.upvoteCount || 0) + 1;
     }
   }
 
@@ -346,6 +352,8 @@ const upvoteDownvoteFeedback = asyncHandler(async (req, res) => {
       feedback.upvotes = feedback.upvotes.filter(
         (id) => id.toString() !== userId.toString()
       );
+      // Decrement upvote count
+      feedback.upvoteCount = Math.max(0, (feedback.upvoteCount || 0) - 1);
     }
 
     // Toggle downvote
@@ -354,12 +362,15 @@ const upvoteDownvoteFeedback = asyncHandler(async (req, res) => {
       feedback.downvotes = feedback.downvotes.filter(
         (id) => id.toString() !== userId.toString()
       );
+      // Decrement downvote count
+      feedback.downvoteCount = Math.max(0, (feedback.downvoteCount || 0) - 1);
     } else {
       // Add downvote
       feedback.downvotes.push(userId);
+      // Increment downvote count
+      feedback.downvoteCount = (feedback.downvoteCount || 0) + 1;
     }
   }
-
   // Save the updated feedback
   await feedback.save();
 
@@ -367,8 +378,8 @@ const upvoteDownvoteFeedback = asyncHandler(async (req, res) => {
     status: 200,
     error: false,
     data: {
-      upvotes: feedback.upvotes.length,
-      downvotes: feedback.downvotes.length,
+      upvotes: feedback.upvoteCount || feedback.upvotes.length,
+      downvotes: feedback.downvoteCount || feedback.downvotes.length,
       userUpvoted: feedback.upvotes.includes(userId),
       userDownvoted: feedback.downvotes.includes(userId),
     },
