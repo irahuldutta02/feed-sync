@@ -1,8 +1,5 @@
-import React, { useState } from "react";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import slugify from "slugify";
+import ImageUploader from "@/components/ui-custom/ImageUploader";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -21,9 +18,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -31,9 +25,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/services/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import slugify from "slugify";
+import { z } from "zod";
 
 // Form schema
 const formSchema = z.object({
@@ -94,19 +95,12 @@ const CreateCampaignDialog: React.FC<CreateCampaignDialogProps> = ({
     const title = e.target.value;
     form.setValue("title", title);
 
-    // Only auto-generate slug if user hasn't manually edited it
-    if (
-      !form.getValues("slug") ||
-      form.getValues("slug") ===
-        slugify(form.getValues("title").slice(0, -1), { lower: true })
-    ) {
-      const generatedSlug = slugify(title, {
-        lower: true, // Convert to lowercase
-        strict: true, // Strip special characters
-        trim: true, // Trim leading and trailing spaces
-      });
-      form.setValue("slug", generatedSlug);
-    }
+    const generatedSlug = slugify(title, {
+      lower: true, // Convert to lowercase
+      strict: true, // Strip special characters
+      trim: true, // Trim leading and trailing spaces
+    });
+    form.setValue("slug", generatedSlug);
   };
 
   const onSubmit = async (values: FormValues) => {
@@ -225,7 +219,7 @@ const CreateCampaignDialog: React.FC<CreateCampaignDialogProps> = ({
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6">
               <FormField
                 control={form.control}
                 name="link"
@@ -242,21 +236,37 @@ const CreateCampaignDialog: React.FC<CreateCampaignDialogProps> = ({
                   </FormItem>
                 )}
               />
-
+            </div>
+            <div className="grid grid-cols-1 gap-6">
               <FormField
                 control={form.control}
                 name="bannerImage"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Banner Image URL</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="https://example.com/image.jpg"
-                        {...field}
-                      />
-                    </FormControl>
+                    <FormLabel>Banner Image</FormLabel>
+                    <div className="space-y-4">
+                      <FormControl>
+                        <Input
+                          placeholder="https://example.com/image.jpg"
+                          {...field}
+                          className="mb-2"
+                        />
+                      </FormControl>
+                      <div className="border-t pt-4">
+                        <div className="text-sm font-medium mb-2">
+                          Or upload an image:
+                        </div>
+                        <ImageUploader
+                          currentImageUrl={field.value}
+                          onImageUploaded={(url) =>
+                            form.setValue("bannerImage", url)
+                          }
+                          inputId="campaign-banner-upload"
+                        />
+                      </div>
+                    </div>
                     <FormDescription>
-                      URL to an image for your campaign
+                      Provide a URL or upload an image for your campaign banner
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -269,7 +279,7 @@ const CreateCampaignDialog: React.FC<CreateCampaignDialogProps> = ({
                 control={form.control}
                 name="allowAnonymous"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 h-full">
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">
                         Allow Anonymous Feedback
@@ -286,13 +296,12 @@ const CreateCampaignDialog: React.FC<CreateCampaignDialogProps> = ({
                     </FormControl>
                   </FormItem>
                 )}
-              />
-
+              />{" "}
               <FormField
                 control={form.control}
                 name="status"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="h-full">
                     <FormLabel>Campaign Status</FormLabel>
                     <Select
                       onValueChange={field.onChange}
