@@ -1,5 +1,3 @@
-import React from "react";
-import { Link } from "react-router-dom";
 import { Logo } from "../ui-custom/Logo";
 
 const Footer = () => {
@@ -10,9 +8,9 @@ const Footer = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <Link to="/" className="inline-block mb-4">
+            <a href="#" className="inline-block mb-4">
               <Logo />
-            </Link>
+            </a>
             <p className="text-muted-foreground mb-4">
               The modern way to collect, analyze, and improve with feedback.
             </p>
@@ -69,36 +67,36 @@ const Footer = () => {
             </h3>
             <ul className="space-y-2">
               <li>
-                <Link
-                  to="/features"
+                <a
+                  href="#"
                   className="text-muted-foreground hover:text-brand-600"
                 >
                   Features
-                </Link>
+                </a>
               </li>
               <li>
-                <Link
-                  to="/pricing"
+                <a
+                  href="#"
                   className="text-muted-foreground hover:text-brand-600"
                 >
                   Pricing
-                </Link>
+                </a>
               </li>
               <li>
-                <Link
-                  to="/roadmap"
+                <a
+                  href="#"
                   className="text-muted-foreground hover:text-brand-600"
                 >
                   Roadmap
-                </Link>
+                </a>
               </li>
               <li>
-                <Link
-                  to="/changelog"
+                <a
+                  href="#"
                   className="text-muted-foreground hover:text-brand-600"
                 >
                   Changelog
-                </Link>
+                </a>
               </li>
             </ul>
           </div>
@@ -109,36 +107,36 @@ const Footer = () => {
             </h3>
             <ul className="space-y-2">
               <li>
-                <Link
-                  to="/docs"
+                <a
+                  href="#"
                   className="text-muted-foreground hover:text-brand-600"
                 >
                   Documentation
-                </Link>
+                </a>
               </li>
               <li>
-                <Link
-                  to="/guides"
+                <a
+                  href="#"
                   className="text-muted-foreground hover:text-brand-600"
                 >
                   Guides
-                </Link>
+                </a>
               </li>
               <li>
-                <Link
-                  to="/blog"
+                <a
+                  href="#"
                   className="text-muted-foreground hover:text-brand-600"
                 >
                   Blog
-                </Link>
+                </a>
               </li>
               <li>
-                <Link
-                  to="/help"
+                <a
+                  href="#"
                   className="text-muted-foreground hover:text-brand-600"
                 >
                   Help Center
-                </Link>
+                </a>
               </li>
             </ul>
           </div>
@@ -149,36 +147,36 @@ const Footer = () => {
             </h3>
             <ul className="space-y-2">
               <li>
-                <Link
-                  to="/about"
+                <a
+                  href="#"
                   className="text-muted-foreground hover:text-brand-600"
                 >
                   About Us
-                </Link>
+                </a>
               </li>
               <li>
-                <Link
-                  to="/careers"
+                <a
+                  href="#"
                   className="text-muted-foreground hover:text-brand-600"
                 >
                   Careers
-                </Link>
+                </a>
               </li>
               <li>
-                <Link
-                  to="/privacy"
+                <a
+                  href="#"
                   className="text-muted-foreground hover:text-brand-600"
                 >
                   Privacy Policy
-                </Link>
+                </a>
               </li>
               <li>
-                <Link
-                  to="/terms"
+                <a
+                  href="#"
                   className="text-muted-foreground hover:text-brand-600"
                 >
                   Terms of Service
-                </Link>
+                </a>
               </li>
             </ul>
           </div>

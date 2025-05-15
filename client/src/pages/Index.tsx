@@ -1,6 +1,5 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import Footer from "@/components/layout/Footer";
+import Header from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,17 +8,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import { useAuth } from "@/contexts/AuthContext";
+import { motion } from "framer-motion";
 import {
   BarChart2,
-  PieChart,
   MessageCircle,
-  Users,
+  PieChart,
   Star,
   TrendingUp,
+  Users,
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const FeatureCard = ({ icon, title, description }) => (
   <Card className="hover:shadow-md transition-all bg-white dark:bg-card border-border">
@@ -165,8 +164,8 @@ const Index = () => {
             >
               <FeatureCard
                 icon={<MessageCircle size={24} />}
-                title="Customizable Feedback Forms"
-                description="Create beautiful, branded feedback forms that match your company's identity and encourage user engagement."
+                title="Instant Feedback Collection"
+                description="Quickly gather feedback from your users with easy-to-use forms and widgets."
               />
             </motion.div>
 
@@ -178,8 +177,8 @@ const Index = () => {
             >
               <FeatureCard
                 icon={<BarChart2 size={24} />}
-                title="In-depth Analytics"
-                description="Powerful analytics dashboard to track feedback trends, sentiment analysis, and user satisfaction over time."
+                title="Real-Time Analytics"
+                description="Monitor feedback trends and metrics as they happen, enabling fast, data-driven decisions."
               />
             </motion.div>
 
@@ -191,8 +190,8 @@ const Index = () => {
             >
               <FeatureCard
                 icon={<PieChart size={24} />}
-                title="Visual Reports"
-                description="Generate visual reports to share with stakeholders and team members, with exportable data in multiple formats."
+                title="Customizable Reports"
+                description="Create and export detailed reports tailored to your team’s needs."
               />
             </motion.div>
 
@@ -205,7 +204,7 @@ const Index = () => {
               <FeatureCard
                 icon={<Users size={24} />}
                 title="Team Collaboration"
-                description="Invite team members to collaborate, assign tasks, and respond to feedback as a team."
+                description="Invite your team, assign roles, and work together to address user feedback."
               />
             </motion.div>
 
@@ -217,8 +216,8 @@ const Index = () => {
             >
               <FeatureCard
                 icon={<Star size={24} />}
-                title="Sentiment Analysis"
-                description="AI-powered sentiment analysis to understand the emotions behind user feedback and prioritize improvements."
+                title="User Satisfaction Tracking"
+                description="Track satisfaction scores and see how your changes impact user happiness."
               />
             </motion.div>
 
@@ -230,8 +229,8 @@ const Index = () => {
             >
               <FeatureCard
                 icon={<TrendingUp size={24} />}
-                title="Trend Monitoring"
-                description="Track feedback trends over time to identify recurring issues and measure the impact of your improvements."
+                title="Growth Insights"
+                description="Identify opportunities for growth and improvement based on real user data."
               />
             </motion.div>
           </div>
