@@ -36,12 +36,14 @@ const FeedbackList = ({ campaignId }) => {
       });
 
       if (response?.data?.error === false) {
-        // Transform the API response to match our component props
         const formattedFeedbacks = response.data.data.map((feedback) => ({
           id: feedback._id,
           userName: feedback.anonymous
             ? "Anonymous"
             : feedback.createdBy?.name || "Unknown User",
+          userAvatar: feedback.anonymous
+            ? null
+            : feedback.createdBy?.avatarUrl || null,
           rating: feedback.rating,
           date: feedback.createdAt,
           feedback: feedback.feedback,
@@ -49,6 +51,7 @@ const FeedbackList = ({ campaignId }) => {
           upvotes: feedback.upvotes || [],
           downvotes: feedback.downvotes || [],
           isVerified: feedback.isVerified,
+          isAnonymous: feedback.anonymous,
         }));
 
         setFeedbacks(formattedFeedbacks);
@@ -96,6 +99,7 @@ const FeedbackList = ({ campaignId }) => {
                   key={feedback.id}
                   id={feedback.id}
                   userName={feedback.userName}
+                  userAvatar={feedback.userAvatar}
                   rating={feedback.rating}
                   date={feedback.date}
                   feedback={feedback.feedback}
@@ -103,6 +107,7 @@ const FeedbackList = ({ campaignId }) => {
                   upvotes={feedback.upvotes}
                   downvotes={feedback.downvotes}
                   isVerified={feedback.isVerified}
+                  isAnonymous={feedback.isAnonymous}
                 />
               ))}
             </div>

@@ -12,6 +12,7 @@ import VoteButtons from "./VoteButtons";
 const FeedbackListItem = ({
   id,
   userName,
+  userAvatar,
   rating,
   date,
   feedback,
@@ -19,6 +20,7 @@ const FeedbackListItem = ({
   upvotes = [],
   downvotes = [],
   isVerified,
+  isAnonymous,
 }) => {
   const { user } = useAuth();
 
@@ -37,24 +39,48 @@ const FeedbackListItem = ({
       <CardContent className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row justify-between mb-3">
           <div className="flex items-center mb-2 sm:mb-0">
-            <div className="font-medium flex items-center">
-              {userName === "Anonymous" ? (
-                <span className="italic text-muted-foreground">Anonymous</span>
+            <div className="flex items-center gap-2">
+              {isAnonymous || userName === "Anonymous" ? (
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                  <span className="text-xs text-muted-foreground">A</span>
+                </div>
+              ) : userAvatar ? (
+                <img
+                  src={userAvatar}
+                  alt={userName}
+                  className="w-8 h-8 rounded-full object-cover"
+                />
               ) : (
-                userName
-              )}
-              {isVerified && (
-                <div className="ml-1.5 flex items-center" title="Verified User">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <ShieldCheck className="h-5 w-5 text-green-500" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Verified user</p>
-                    </TooltipContent>
-                  </Tooltip>
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-xs text-primary">
+                    {userName.charAt(0)}
+                  </span>
                 </div>
               )}
+              <div className="font-medium flex items-center">
+                {isAnonymous || userName === "Anonymous" ? (
+                  <span className="italic text-muted-foreground">
+                    Anonymous
+                  </span>
+                ) : (
+                  userName
+                )}
+                {isVerified && (
+                  <div
+                    className="ml-1.5 flex items-center"
+                    title="Verified User"
+                  >
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <ShieldCheck className="h-5 w-5 text-green-500" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Verified user</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex items-center space-x-4">

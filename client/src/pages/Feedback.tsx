@@ -633,18 +633,49 @@ const Feedback = () => {
                     feedbackData.map((item) => (
                       <TableRow key={item._id}>
                         <TableCell className="font-medium">
-                          {item.anonymous ? (
-                            <span className="italic text-muted-foreground">
-                              Anonymous
-                            </span>
-                          ) : item.createdBy ? (
-                            item.createdBy.name
-                          ) : (
-                            <span className="italic text-muted-foreground">
-                              Unknown User
-                            </span>
-                          )}
-                          <div className="text-xs text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            {item.anonymous ? (
+                              <>
+                                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                                  <span className="text-xs text-muted-foreground">
+                                    A
+                                  </span>
+                                </div>
+                                <span className="italic text-muted-foreground">
+                                  Anonymous
+                                </span>
+                              </>
+                            ) : item.createdBy ? (
+                              <>
+                                {item.createdBy.avatarUrl ? (
+                                  <img
+                                    src={item.createdBy.avatarUrl}
+                                    alt={item.createdBy.name}
+                                    className="w-8 h-8 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <span className="text-xs text-primary">
+                                      {item.createdBy.name.charAt(0)}
+                                    </span>
+                                  </div>
+                                )}
+                                <span>{item.createdBy.name}</span>
+                              </>
+                            ) : (
+                              <>
+                                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                                  <span className="text-xs text-muted-foreground">
+                                    ?
+                                  </span>
+                                </div>
+                                <span className="italic text-muted-foreground">
+                                  Unknown User
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground ml-10">
                             {item.campaignId.name}
                           </div>
                         </TableCell>
@@ -754,29 +785,44 @@ const Feedback = () => {
 
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
+                {" "}
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground mb-1">
                     From
                   </h4>
                   {selectedFeedback.anonymous ? (
-                    <p className="font-medium italic">Anonymous</p>
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                        <span className="text-sm text-muted-foreground">A</span>
+                      </div>
+                      <p className="font-medium italic">Anonymous</p>
+                    </div>
                   ) : selectedFeedback.createdBy ? (
-                    <>
+                    <div className="flex items-center gap-2">
+                      {selectedFeedback.createdBy.avatarUrl ? (
+                        <img
+                          src={selectedFeedback.createdBy.avatarUrl}
+                          alt={selectedFeedback.createdBy.name}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm text-primary">
+                            {selectedFeedback.createdBy.name.charAt(0)}
+                          </span>
+                        </div>
+                      )}
                       <p className="font-medium">
                         {selectedFeedback.createdBy.name}
                       </p>
-                      {selectedFeedback.createdBy.avatarUrl && (
-                        <div className="mt-1">
-                          <img
-                            src={selectedFeedback.createdBy.avatarUrl}
-                            alt="User Avatar"
-                            className="w-8 h-8 rounded-full"
-                          />
-                        </div>
-                      )}
-                    </>
+                    </div>
                   ) : (
-                    <p className="font-medium italic">Unknown User</p>
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                        <span className="text-sm text-muted-foreground">?</span>
+                      </div>
+                      <p className="font-medium italic">Unknown User</p>
+                    </div>
                   )}
                 </div>
                 <div>
