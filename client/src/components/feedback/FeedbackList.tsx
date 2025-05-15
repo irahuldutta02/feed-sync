@@ -26,53 +26,77 @@ const ITEMS_PER_PAGE = 5;
 
 const FeedbackList = ({ campaignId }) => {
   const [feedbacks, setFeedbacks] = useState([]);
-  const [filteredFeedbacks, setFilteredFeedbacks] = useState([]);
   const [feedbackLoading, setFeedbackLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [ratingFilter, setRatingFilter] = useState("all");
-  const [sortOrder, setSortOrder] = useState("newest");
+  const [sortOrder, setSortOrder] = useState("most-upvoted");
   const [hasAttachmentsFilter, setHasAttachmentsFilter] = useState(false);
 
+  // Reset to page 1 when filters or sort order changes
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+      toast({
+        title: "Navigation Reset",
+        description:
+          "Filters or sort order changed. Showing page 1 of results.",
+        variant: "default",
+        duration: 2000,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, ratingFilter, hasAttachmentsFilter, sortOrder]);
+
+  // Fetch data from server when campaign, page, or filters/sort/search changes
   useEffect(() => {
     if (campaignId) {
       fetchFeedbacks();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [campaignId, currentPage, sortOrder]);
-
-  useEffect(() => {
-    applyFiltersAndSort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [feedbacks, searchQuery, ratingFilter, hasAttachmentsFilter]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, ratingFilter, hasAttachmentsFilter, sortOrder]);
+  }, [
+    campaignId,
+    currentPage,
+    sortOrder,
+    ratingFilter,
+    hasAttachmentsFilter,
+    searchQuery,
+  ]);
 
   const fetchFeedbacks = async () => {
     try {
       setFeedbackLoading(true);
-      let sortParam = "-createdAt";
-      if (sortOrder === "oldest") {
-        sortParam = "createdAt";
-      } else if (sortOrder === "top-rated") {
-        sortParam = "-rating";
-      } else if (sortOrder === "most-upvoted") {
-        sortParam = "-upvoteCount";
-      } else if (sortOrder === "most-downvoted") {
-        sortParam = "-downvoteCount";
-      }
 
-      const response = await api.get("/feedback/paginated_list", {
-        params: {
-          campaignId: campaignId,
-          page: currentPage,
-          limit: ITEMS_PER_PAGE,
-          sort: sortParam,
-        },
-      });
+      // Determine sort parameter based on selected sort order
+      let sortParam = "-createdAt"; // default: newest first
+      if (sortOrder === "oldest") sortParam = "createdAt";
+      else if (sortOrder === "top-rated") sortParam = "-rating";
+      else if (sortOrder === "most-upvoted") sortParam = "-upvoteCount";
+      else if (sortOrder === "most-downvoted") sortParam = "-downvoteCount";
+
+      // Build query parameters
+      const params: {
+        campaignId: string;
+        page: number;
+        limit: number;
+        sort: string;
+        rating?: number;
+        hasAttachments?: boolean;
+        search?: string;
+      } = {
+        campaignId,
+        page: currentPage,
+        limit: ITEMS_PER_PAGE,
+        sort: sortParam,
+      };
+
+      // Add optional filters if selected
+      if (ratingFilter !== "all") params.rating = Number(ratingFilter);
+      if (hasAttachmentsFilter) params.hasAttachments = true;
+      if (searchQuery.trim()) params.search = searchQuery.trim();
+
+      const response = await api.get("/feedback/paginated_list", { params });
 
       if (response?.data?.error === false) {
         const formattedFeedbacks = response.data.data.map((feedback) => ({
@@ -89,6 +113,8 @@ const FeedbackList = ({ campaignId }) => {
           attachments: feedback.attachments || [],
           upvotes: feedback.upvotes || [],
           downvotes: feedback.downvotes || [],
+          upvoteCount: feedback.upvoteCount || 0,
+          downvoteCount: feedback.downvoteCount || 0,
           isVerified: feedback.isVerified,
           isAnonymous: feedback.anonymous,
         }));
@@ -104,7 +130,6 @@ const FeedbackList = ({ campaignId }) => {
       }
     } catch (err) {
       console.error(err);
-
       toast({
         title: "Error",
         description: err?.response?.data?.message || "Failed to load feedbacks",
@@ -115,47 +140,22 @@ const FeedbackList = ({ campaignId }) => {
     }
   };
 
-  const applyFiltersAndSort = () => {
-    let result = [...feedbacks];
-
-    // Apply rating filter
-    if (ratingFilter !== "all") {
-      const numericRating = parseInt(ratingFilter);
-      result = result.filter((item) => item.rating === numericRating);
-    }
-
-    // Apply has attachments filter
-    if (hasAttachmentsFilter) {
-      result = result.filter(
-        (item) => item.attachments && item.attachments.length > 0
-      );
-    }
-
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (item) =>
-          (item.feedback && item.feedback.toLowerCase().includes(query)) ||
-          (!item.isAnonymous &&
-            item.userName &&
-            item.userName.toLowerCase().includes(query))
-      );
-    }
-
-    setFilteredFeedbacks(result);
-  };
-
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
+    // Scroll to top on page change for better UX
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Calculate total pages for pagination
   const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
+
+  // Determine if any filters are active for display purposes
+  const isFiltering =
+    searchQuery.trim() !== "" || ratingFilter !== "all" || hasAttachmentsFilter;
 
   return (
     <Card className="bg-card shadow-lg">
@@ -217,7 +217,7 @@ const FeedbackList = ({ campaignId }) => {
                 </SelectContent>
               </Select>
             </div>
-          </div>{" "}
+          </div>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Button
@@ -231,9 +231,12 @@ const FeedbackList = ({ campaignId }) => {
               </Button>
             </div>
             <div className="text-sm text-muted-foreground">
-              {searchQuery || ratingFilter !== "all" || hasAttachmentsFilter
-                ? `Showing ${filteredFeedbacks.length} of ${totalCount} responses (filtered)`
-                : `Showing ${feedbacks.length} of ${totalCount} responses`}
+              {isFiltering
+                ? `Showing ${feedbacks.length} of ${totalCount} filtered responses`
+                : `Showing ${Math.min(
+                    ITEMS_PER_PAGE,
+                    totalCount - (currentPage - 1) * ITEMS_PER_PAGE
+                  )} of ${totalCount} responses`}
             </div>
           </div>
         </div>
@@ -247,9 +250,9 @@ const FeedbackList = ({ campaignId }) => {
                 Loading feedbacks...
               </p>
             </div>
-          ) : filteredFeedbacks.length > 0 ? (
+          ) : feedbacks.length > 0 ? (
             <div>
-              {filteredFeedbacks.map((feedback) => (
+              {feedbacks.map((feedback) => (
                 <FeedbackListItem
                   key={feedback.id}
                   id={feedback.id}
@@ -269,14 +272,13 @@ const FeedbackList = ({ campaignId }) => {
           ) : (
             <div className="py-12 text-center text-muted-foreground">
               {totalCount > 0
-                ? searchQuery || ratingFilter !== "all" || hasAttachmentsFilter
-                  ? "No feedback matches your current filters"
-                  : "No feedback to display for the current page"
+                ? "No feedback matches your current filters"
                 : "No feedback has been submitted yet for this campaign"}
             </div>
           )}
         </ScrollArea>
 
+        {/* Show pagination controls only when we have more than one page */}
         {!feedbackLoading && totalCount > ITEMS_PER_PAGE && (
           <FeedbackPagination
             currentPage={currentPage}

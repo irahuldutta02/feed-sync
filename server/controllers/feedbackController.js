@@ -195,7 +195,15 @@ const feedbackDetail = asyncHandler(async (req, res) => {
 });
 
 const feedbackPaginatedList = asyncHandler(async (req, res) => {
-  const { campaignId, page = 1, limit = 10, sort = "-createdAt" } = req.query;
+  const {
+    campaignId,
+    page = 1,
+    limit = 10,
+    sort = "-createdAt",
+    rating,
+    hasAttachments,
+    search,
+  } = req.query;
 
   // Validate campaignId
   if (!campaignId) {
@@ -212,14 +220,30 @@ const feedbackPaginatedList = asyncHandler(async (req, res) => {
     status: { $ne: "Deleted" },
   };
 
-  // Count total documents
+  // Add rating filter if provided and valid
+  if (rating && !isNaN(Number(rating))) {
+    filter.rating = Number(rating);
+  }
+
+  // Add attachments filter if requested
+  if (hasAttachments === "true") {
+    filter.attachments = { $exists: true, $not: { $size: 0 } };
+  }
+
+  // Add search filter if provided
+  if (search && search.trim()) {
+    // Search in feedback text
+    filter.$or = [{ feedback: { $regex: search, $options: "i" } }];
+  }
+
+  // Count total documents matching the filter
   const total = await Feedback.countDocuments(filter);
 
   // Get paginated results
   const feedbacks = await Feedback.find(filter)
     .populate({
       path: "createdBy",
-      select: "",
+      select: "-password",
     })
     .populate({
       path: "campaignId",
