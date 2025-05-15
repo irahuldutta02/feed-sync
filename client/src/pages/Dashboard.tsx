@@ -341,7 +341,7 @@ const Dashboard = () => {
                         responses
                       </div>
                       <div className="mt-4">
-                        <Link target="_blank" to={`/c/${c.slug}`}>
+                        <Link to={`/dashboard/feedback?campaignId=${c._id}`}>
                           <Button variant="outline" className="w-full">
                             View Campaign
                           </Button>
