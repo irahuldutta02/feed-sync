@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
 import api from "@/services/api";
 import { Image, Search } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -29,10 +30,23 @@ const FeedbackList = ({ campaignId }) => {
   const [feedbackLoading, setFeedbackLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchInputValue, setSearchInputValue] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [ratingFilter, setRatingFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("most-upvoted");
   const [hasAttachmentsFilter, setHasAttachmentsFilter] = useState(false);
+
+  // Debounce search input to avoid frequent API calls
+  const debouncedSearch = useDebounce((value: string) => {
+    setSearchQuery(value);
+  }, 500);
+
+  // Handle search input changes
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchInputValue(value);
+    debouncedSearch(value);
+  };
 
   // Reset to page 1 when filters or sort order changes
   useEffect(() => {
@@ -133,10 +147,6 @@ const FeedbackList = ({ campaignId }) => {
     }
   };
 
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-  };
-
   const handlePageChange = (page) => {
     setCurrentPage(page);
     // Scroll to top on page change for better UX
@@ -167,7 +177,7 @@ const FeedbackList = ({ campaignId }) => {
                 <Input
                   placeholder="Search feedback..."
                   className="pl-8 w-full sm:w-64"
-                  value={searchQuery}
+                  value={searchInputValue}
                   onChange={handleSearchChange}
                 />
               </div>
