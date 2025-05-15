@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import { BarChart2, Edit3, Home, LogOut, Settings, Star } from "lucide-react";
+import { BarChart2, Home, LogOut, Settings, Star } from "lucide-react";
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Logo } from "../ui-custom/Logo";
@@ -32,7 +32,7 @@ const NavItem = ({ to, icon, label, isActive }: NavItemProps) => {
   );
 };
 
-const DashboardSidebar = () => {
+const DashboardSidebar = ({ mobile = false }) => {
   const location = useLocation();
   const pathname = location.pathname;
   const navigate = useNavigate();
@@ -40,7 +40,13 @@ const DashboardSidebar = () => {
   const { logout } = useAuth();
 
   return (
-    <aside className="w-64 border-r border-r-border h-screen sticky top-0 hidden md:block">
+    <aside
+      className={cn(
+        mobile
+          ? "block md:hidden w-full h-full bg-background border-r-0 sticky-0"
+          : "w-64 border-r border-r-border h-screen sticky top-0 hidden md:block"
+      )}
+    >
       <div className="h-full flex flex-col">
         <div className="p-6">
           <Link to="/" className="flex items-center">
