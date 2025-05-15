@@ -218,7 +218,11 @@ const feedbackPaginatedList = asyncHandler(async (req, res) => {
   const feedbacks = await Feedback.find(filter)
     .populate({
       path: "createdBy",
-      select: "name avatarUrl",
+      select: "",
+    })
+    .populate({
+      path: "campaignId",
+      select: "",
     })
     .sort(sort)
     .limit(parseInt(limit))

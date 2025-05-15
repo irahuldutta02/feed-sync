@@ -48,35 +48,13 @@ import {
 import React, { useEffect, useState } from "react";
 import { formatDateTime } from "../util/util";
 
-// Define the FeedbackItem type that matches server structure
-interface FeedbackItem {
-  _id: string;
-  campaignId: {
-    _id: string;
-    name: string;
-  };
-  createdBy?: {
-    _id: string;
-    name: string;
-    avatarUrl?: string;
-  };
-  anonymous: boolean;
-  rating: number;
-  feedback: string;
-  createdAt: string;
-  attachments: string[];
-  upvotes: string[];
-  downvotes: string[];
-  status: string;
-}
-
 const ITEMS_PER_PAGE = 5;
 
 const Feedback = () => {
   const { toast } = useToast();
 
   // State for API data and loading
-  const [feedbackData, setFeedbackData] = useState<FeedbackItem[]>([]);
+  const [feedbackData, setFeedbackData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
@@ -86,9 +64,7 @@ const Feedback = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [ratingFilter, setRatingFilter] = useState("all");
   const [campaignFilter, setCampaignFilter] = useState("all");
-  const [selectedFeedback, setSelectedFeedback] = useState<FeedbackItem | null>(
-    null
-  );
+  const [selectedFeedback, setSelectedFeedback] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState("newest");
@@ -194,7 +170,7 @@ const Feedback = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
-  const handleViewDetails = (feedback: FeedbackItem) => {
+  const handleViewDetails = (feedback) => {
     setSelectedFeedback(feedback);
     setDetailsOpen(true);
   };
@@ -371,7 +347,7 @@ const Feedback = () => {
       }
 
       // Make a request for each campaign and collect results
-      let allFeedbacks: FeedbackItem[] = [];
+      let allFeedbacks = [];
 
       // Only fetch for the first 5 campaigns to avoid too many requests
       const campaignsToFetch = campaigns.slice(0, 5);
@@ -676,7 +652,7 @@ const Feedback = () => {
                             )}
                           </div>
                           <div className="text-xs text-muted-foreground ml-10">
-                            {item.campaignId.name}
+                            {item.campaignId.title}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -829,7 +805,7 @@ const Feedback = () => {
                   <h4 className="text-sm font-medium text-muted-foreground mb-1">
                     Campaign
                   </h4>
-                  <p>{selectedFeedback.campaignId.name}</p>
+                  <p>{selectedFeedback.campaignId.title}</p>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground mb-1">
