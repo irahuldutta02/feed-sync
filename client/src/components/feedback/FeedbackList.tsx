@@ -38,13 +38,6 @@ const FeedbackList = ({ campaignId }) => {
   useEffect(() => {
     if (currentPage !== 1) {
       setCurrentPage(1);
-      toast({
-        title: "Navigation Reset",
-        description:
-          "Filters or sort order changed. Showing page 1 of results.",
-        variant: "default",
-        duration: 2000,
-      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, ratingFilter, hasAttachmentsFilter, sortOrder]);
