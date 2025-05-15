@@ -91,7 +91,7 @@ const Feedback = () => {
 
   // Fix the main useEffect for fetching data
   useEffect(() => {
-    // Only fetch if we have campaigns
+    // Only fetch if we have campaigns loaded
     if (campaigns.length > 0) {
       if (campaignFilter === "all" && campaigns.length > 1) {
         // In "All My Campaigns" mode with multiple campaigns
@@ -100,6 +100,13 @@ const Feedback = () => {
         // Single campaign mode or only one campaign exists
         fetchFeedback();
       }
+    } else if (!loading) {
+      // If campaigns array is empty but not in loading state, set appropriate message
+      setFeedbackData([]);
+      setTotalCount(0);
+      setError(
+        "No campaigns found. Create a campaign first to collect feedback."
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -130,15 +137,22 @@ const Feedback = () => {
             // The API handler will use the first campaign when "all" is selected
           } else {
             setCampaigns([]);
+            setError(
+              "No campaigns found. Create a campaign first to collect feedback."
+            );
           }
         }
       } catch (error) {
         console.error("Error fetching campaigns:", error);
+        setCampaigns([]);
+        setError("Failed to load campaigns. Please refresh the page.");
         toast({
           title: "Error",
           description: "Failed to load campaigns",
           variant: "destructive",
         });
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -205,6 +219,9 @@ const Feedback = () => {
         // No campaigns available yet, can't fetch feedback
         setFeedbackData([]);
         setTotalCount(0);
+        setError(
+          "No campaigns found. Create a campaign first to collect feedback."
+        );
         setLoading(false);
         setIsFetchingAllCampaigns(false);
         return;
@@ -244,6 +261,11 @@ const Feedback = () => {
 
       const response = await getFeedbackList(params);
 
+      // Check if response data is valid
+      if (!response.data || !Array.isArray(response.data)) {
+        throw new Error("Invalid response format from server");
+      }
+
       // Apply client-side filters
       let filteredData = response.data;
 
@@ -263,12 +285,32 @@ const Feedback = () => {
       }
 
       setFeedbackData(filteredData);
+
       // Adjust total count to reflect filtered results for client-side filtering
       if (ratingFilter !== "all" || hasAttachmentsFilter) {
         setTotalCount(filteredData.length);
-      } else {
+      } else if (
+        response.pagination &&
+        typeof response.pagination.total === "number"
+      ) {
         // Use the total from pagination for server-side pagination
         setTotalCount(response.pagination.total);
+      } else {
+        // Fallback if pagination data is missing
+        setTotalCount(filteredData.length);
+      }
+
+      // If we got empty results but no error, set appropriate message
+      if (filteredData.length === 0) {
+        setError(
+          searchQuery || ratingFilter !== "all" || hasAttachmentsFilter
+            ? "No feedback found with the selected filters"
+            : campaignFilter === "all" && campaigns.length > 1
+            ? "No feedback found across any of your campaigns. Share your campaign links to collect feedback."
+            : "No feedback found for the selected campaign. Share your campaign link to collect feedback."
+        );
+      } else {
+        setError(null);
       }
     } catch (error: unknown) {
       const errorMessage =
@@ -288,6 +330,10 @@ const Feedback = () => {
       } else {
         setError("Failed to load feedback data. Please try again.");
       }
+
+      // Set empty data
+      setFeedbackData([]);
+      setTotalCount(0);
 
       toast({
         title: "Error",
@@ -309,11 +355,15 @@ const Feedback = () => {
     setError(null);
 
     try {
-      // If no campaigns, return early
+      // If no campaigns, return early with appropriate message
       if (campaigns.length === 0) {
         setFeedbackData([]);
         setTotalCount(0);
+        setError(
+          "No campaigns found. Create a campaign first to collect feedback."
+        );
         setLoading(false);
+        setIsFetchingAllCampaigns(false);
         return;
       }
 
@@ -341,7 +391,7 @@ const Feedback = () => {
         baseParams.search = searchQuery;
       }
 
-      // Add rating filter as a parameter (even though the server might not support it)
+      // Add rating filter as a parameter
       if (ratingFilter !== "all") {
         baseParams.rating = parseInt(ratingFilter);
       }
@@ -414,12 +464,26 @@ const Feedback = () => {
 
       setFeedbackData(paginatedResults);
       setTotalCount(totalItems); // Use the total count of filtered items
+
+      // If we got empty results but no error, set appropriate message
+      if (paginatedResults.length === 0) {
+        setError(
+          searchQuery || ratingFilter !== "all" || hasAttachmentsFilter
+            ? "No feedback found with the selected filters"
+            : "No feedback found across any of your campaigns. Share your campaign links to collect feedback."
+        );
+      } else {
+        setError(null);
+      }
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to load feedback data";
 
       console.error("Error fetching all campaigns feedback:", error);
 
+      // Set empty data
+      setFeedbackData([]);
+      setTotalCount(0);
       setError("Failed to load feedback data. Please try again.");
 
       toast({
