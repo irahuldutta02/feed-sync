@@ -265,14 +265,11 @@ const Feedback = () => {
         <Card>
           <CardHeader className="pb-3">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              {" "}
               <div>
                 <CardTitle>All Feedback</CardTitle>
                 <CardDescription>
-                  Viewing {feedbackData.length} of {totalCount} feedback
-                  responses
-                  {campaignFilter === "all" && campaigns.length > 1
-                    ? " across all campaigns"
-                    : ""}
+                  {loading ? "Loading..." : `Viewing feedback responses`}
                 </CardDescription>
               </div>
               <div className="w-full sm:w-auto">
@@ -366,8 +363,7 @@ const Feedback = () => {
                 </Select>
               </div>
             </div>
-
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center mb-4 flex-wrap gap-4 justify-center md:justify-between">
               <div className="flex items-center gap-2">
                 <Button
                   variant={hasAttachmentsFilter ? "default" : "outline"}
@@ -385,175 +381,339 @@ const Feedback = () => {
                   ? " across all campaigns"
                   : ""}
               </div>
-            </div>
+            </div>{" "}
+            {loading ? (
+              <div className="flex justify-center items-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
+                <span className="ml-2">Loading feedback data...</span>
+              </div>
+            ) : (
+              <>
+                {/* Table view for medium and larger screens */}
+                <div className="hidden md:block rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[200px]">
+                          Name / Campaign
+                        </TableHead>
+                        <TableHead>Rating</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Feedback Preview</TableHead>
+                        <TableHead className="hidden lg:table-cell">
+                          Engagement
+                        </TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {error ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={6}
+                            className="text-center py-8 text-red-500"
+                          >
+                            {error}
+                          </TableCell>
+                        </TableRow>
+                      ) : feedbackData.length > 0 ? (
+                        feedbackData.map((item) => (
+                          <TableRow key={item._id}>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                {item.anonymous ? (
+                                  <>
+                                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                                      <span className="text-xs text-muted-foreground">
+                                        A
+                                      </span>
+                                    </div>
+                                    <span className="italic text-muted-foreground">
+                                      Anonymous
+                                    </span>
+                                  </>
+                                ) : item.createdBy ? (
+                                  <>
+                                    {item.createdBy.avatarUrl ? (
+                                      <img
+                                        src={item.createdBy.avatarUrl}
+                                        alt={item.createdBy.name}
+                                        className="w-8 h-8 rounded-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                        <span className="text-xs text-primary">
+                                          {item.createdBy.name.charAt(0)}
+                                        </span>
+                                      </div>
+                                    )}
+                                    <span>{item.createdBy.name}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                                      <span className="text-xs text-muted-foreground">
+                                        ?
+                                      </span>
+                                    </div>
+                                    <span className="italic text-muted-foreground">
+                                      Unknown User
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                              <div className="text-xs text-muted-foreground ml-10">
+                                {item.campaignId.title}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`h-4 w-4 ${
+                                      i < item.rating
+                                        ? "text-yellow-500 fill-yellow-500"
+                                        : "text-gray-300 dark:text-gray-600"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {formatDateTime(item.createdAt)}
+                            </TableCell>
+                            <TableCell className="max-w-[300px] truncate">
+                              <div className="flex items-center space-x-1">
+                                {item.feedback.substring(0, 60)}
+                                {item.feedback.length > 60 && "..."}
+                                {item.attachments &&
+                                  item.attachments.length > 0 && (
+                                    <span className="inline-flex items-center text-muted-foreground">
+                                      <Image className="h-3 w-3 ml-1" />
+                                      <span className="text-xs ml-0.5">
+                                        {item.attachments.length}
+                                      </span>
+                                    </span>
+                                  )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="hidden lg:table-cell">
+                              <div className="flex items-center gap-1">
+                                <ThumbsUp className="h-4 w-4 text-green-500 fill-green-500 text-muted-foreground" />
+                                <span className="text-sm font-medium text-green-500">
+                                  {item.upvotes?.length ?? 0}
+                                </span>
+                                <ThumbsDown className="h-4 w-4 text-red-500 fill-red-500 text-muted-foreground" />
+                                <span className="text-sm font-medium text-red-500">
+                                  {item.downvotes?.length ?? 0}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleViewDetails(item)}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                View
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell
+                            colSpan={6}
+                            className="text-center py-6 text-muted-foreground"
+                          >
+                            {searchQuery ||
+                            ratingFilter !== "all" ||
+                            hasAttachmentsFilter
+                              ? "No feedback found with the selected filters"
+                              : campaigns.length === 0
+                              ? "No campaigns found. Create a campaign first to collect feedback."
+                              : campaignFilter === "all" && campaigns.length > 1
+                              ? "No feedback found across any of your campaigns. Share your campaign links to collect feedback."
+                              : "No feedback found for the selected campaign. Share your campaign link to collect feedback."}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
 
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[200px]">Name / Campaign</TableHead>
-                    <TableHead>Rating</TableHead>
-                    <TableHead className="hidden md:table-cell">Date</TableHead>
-                    <TableHead>Feedback Preview</TableHead>
-                    <TableHead className="hidden lg:table-cell">
-                      Engagement
-                    </TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
-                        <div className="flex justify-center items-center">
-                          <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                          <span>Loading feedback data...</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : error ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="text-center py-8 text-red-500"
-                      >
-                        {error}
-                      </TableCell>
-                    </TableRow>
+                {/* Card view for small screens */}
+                <div className="md:hidden space-y-4">
+                  {error ? (
+                    <div className="text-center py-6 text-red-500">{error}</div>
                   ) : feedbackData.length > 0 ? (
                     feedbackData.map((item) => (
-                      <TableRow key={item._id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            {item.anonymous ? (
-                              <>
-                                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                                  <span className="text-xs text-muted-foreground">
-                                    A
-                                  </span>
-                                </div>
-                                <span className="italic text-muted-foreground">
-                                  Anonymous
-                                </span>
-                              </>
-                            ) : item.createdBy ? (
-                              <>
-                                {item.createdBy.avatarUrl ? (
-                                  <img
-                                    src={item.createdBy.avatarUrl}
-                                    alt={item.createdBy.name}
-                                    className="w-8 h-8 rounded-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <span className="text-xs text-primary">
-                                      {item.createdBy.name.charAt(0)}
+                      <Card key={item._id} className="overflow-hidden">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              {item.anonymous ? (
+                                <>
+                                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                                    <span className="text-xs text-muted-foreground">
+                                      A
                                     </span>
                                   </div>
+                                  <div>
+                                    <p className="font-medium italic text-muted-foreground">
+                                      Anonymous
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {item.campaignId.title}
+                                    </p>
+                                  </div>
+                                </>
+                              ) : item.createdBy ? (
+                                <>
+                                  {item.createdBy.avatarUrl ? (
+                                    <img
+                                      src={item.createdBy.avatarUrl}
+                                      alt={item.createdBy.name}
+                                      className="w-8 h-8 rounded-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                      <span className="text-xs text-primary">
+                                        {item.createdBy.name.charAt(0)}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div>
+                                    <p className="font-medium">
+                                      {item.createdBy.name}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {item.campaignId.title}
+                                    </p>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                                    <span className="text-xs text-muted-foreground">
+                                      ?
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <p className="font-medium italic text-muted-foreground">
+                                      Unknown User
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {item.campaignId.title}
+                                    </p>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleViewDetails(item)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pb-3 pt-0">
+                          <div className="grid grid-cols-2 gap-4 mb-2 text-sm">
+                            <div>
+                              <p className="text-muted-foreground mb-1">
+                                Rating
+                              </p>
+                              <div className="flex">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`h-4 w-4 ${
+                                      i < item.rating
+                                        ? "text-yellow-500 fill-yellow-500"
+                                        : "text-gray-300 dark:text-gray-600"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground mb-1">Date</p>
+                              <div className="flex items-center">
+                                <Calendar className="h-3 w-3 mr-1 text-muted-foreground" />
+                                <span className="text-xs">
+                                  {formatDateTime(item.createdAt)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground mb-1">
+                              Feedback
+                            </p>
+                            <p className="text-sm">
+                              {item.feedback.substring(0, 100)}
+                              {item.feedback.length > 100 && "..."}
+                            </p>
+                            <div className="flex justify-between items-center mt-2">
+                              {item.attachments &&
+                                item.attachments.length > 0 && (
+                                  <span className="inline-flex items-center text-xs text-muted-foreground">
+                                    <Image className="h-3 w-3 mr-1" />
+                                    {item.attachments.length} attachment
+                                    {item.attachments.length !== 1 ? "s" : ""}
+                                  </span>
                                 )}
-                                <span>{item.createdBy.name}</span>
-                              </>
-                            ) : (
-                              <>
-                                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                                  <span className="text-xs text-muted-foreground">
-                                    ?
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1">
+                                  <ThumbsUp className="h-3 w-3 text-green-500 fill-green-500" />
+                                  <span className="text-xs text-green-500">
+                                    {item.upvotes?.length ?? 0}
                                   </span>
                                 </div>
-                                <span className="italic text-muted-foreground">
-                                  Unknown User
-                                </span>
-                              </>
-                            )}
-                          </div>
-                          <div className="text-xs text-muted-foreground ml-10">
-                            {item.campaignId.title}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`h-4 w-4 ${
-                                  i < item.rating
-                                    ? "text-yellow-500 fill-yellow-500"
-                                    : "text-gray-300 dark:text-gray-600"
-                                }`}
-                              />
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          {formatDateTime(item.createdAt)}
-                        </TableCell>
-                        <TableCell className="max-w-[300px] truncate">
-                          <div className="flex items-center space-x-1">
-                            {item.feedback.substring(0, 60)}
-                            {item.feedback.length > 60 && "..."}
-                            {item.attachments &&
-                              item.attachments.length > 0 && (
-                                <span className="inline-flex items-center text-muted-foreground">
-                                  <Image className="h-3 w-3 ml-1" />
-                                  <span className="text-xs ml-0.5">
-                                    {item.attachments.length}
+                                <div className="flex items-center gap-1">
+                                  <ThumbsDown className="h-3 w-3 text-red-500 fill-red-500" />
+                                  <span className="text-xs text-red-500">
+                                    {item.downvotes?.length ?? 0}
                                   </span>
-                                </span>
-                              )}
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        </TableCell>
-                        <TableCell className="hidden lg:table-cell">
-                          <div className="flex items-center gap-1">
-                            <ThumbsUp className="h-4 w-4 text-green-500 fill-green-500 text-muted-foreground" />
-                            <span className="text-sm font-medium text-green-500">
-                              {item.upvotes?.length ?? 0}
-                            </span>
-                            <ThumbsDown className="h-4 w-4 text-red-500 fill-red-500 text-muted-foreground" />
-                            <span className="text-sm font-medium text-red-500">
-                              {item.downvotes?.length ?? 0}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleViewDetails(item)}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View
-                          </Button>
-                        </TableCell>
-                      </TableRow>
+                        </CardContent>
+                      </Card>
                     ))
                   ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="text-center py-6 text-muted-foreground"
-                      >
-                        {searchQuery ||
-                        ratingFilter !== "all" ||
-                        hasAttachmentsFilter
-                          ? "No feedback found with the selected filters"
-                          : campaigns.length === 0
-                          ? "No campaigns found. Create a campaign first to collect feedback."
-                          : campaignFilter === "all" && campaigns.length > 1
-                          ? "No feedback found across any of your campaigns. Share your campaign links to collect feedback."
-                          : "No feedback found for the selected campaign. Share your campaign link to collect feedback."}
-                      </TableCell>
-                    </TableRow>
+                    <div className="text-center py-6 text-muted-foreground">
+                      {searchQuery ||
+                      ratingFilter !== "all" ||
+                      hasAttachmentsFilter
+                        ? "No feedback found with the selected filters"
+                        : campaigns.length === 0
+                        ? "No campaigns found. Create a campaign first to collect feedback."
+                        : campaignFilter === "all" && campaigns.length > 1
+                        ? "No feedback found across any of your campaigns. Share your campaign links to collect feedback."
+                        : "No feedback found for the selected campaign. Share your campaign link to collect feedback."}
+                    </div>
                   )}
-                </TableBody>
-              </Table>
-            </div>
-
+                </div>
+              </>
+            )}{" "}
             {!loading && !error && totalCount > ITEMS_PER_PAGE && (
-              <FeedbackPagination
-                currentPage={currentPage}
-                totalPages={Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE))}
-                onPageChange={handlePageChange}
-              />
+              <div className="mt-6">
+                <FeedbackPagination
+                  currentPage={currentPage}
+                  totalPages={Math.max(
+                    1,
+                    Math.ceil(totalCount / ITEMS_PER_PAGE)
+                  )}
+                  onPageChange={handlePageChange}
+                />
+              </div>
             )}
           </CardContent>
         </Card>

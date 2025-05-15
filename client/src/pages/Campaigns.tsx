@@ -57,7 +57,7 @@ import { Link } from "react-router-dom";
 const Campaigns: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 1;
   const [totalPages, setTotalPages] = useState<number>(1);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -200,80 +200,200 @@ const Campaigns: React.FC = () => {
                 </Select>
               </div>
             </div>
-          </CardHeader>
+          </CardHeader>{" "}
           <CardContent>
             {isLoading ? (
               <div className="flex justify-center items-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[300px]">Campaign</TableHead>
-                      <TableHead>Responses</TableHead>
-                      <TableHead>Rating</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {campaigns.length > 0 ? (
-                      campaigns.map((campaign) => (
-                        <TableRow key={campaign._id}>
-                          <TableCell className="font-medium">
+              <>
+                {/* Table view for medium and larger screens */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[300px]">Campaign</TableHead>
+                        <TableHead>Responses</TableHead>
+                        <TableHead>Rating</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {campaigns.length > 0 ? (
+                        campaigns.map((campaign) => (
+                          <TableRow key={campaign._id}>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className="h-10 w-10 rounded bg-cover bg-center"
+                                  style={{
+                                    backgroundImage: `url(${campaign.bannerImage})`,
+                                  }}
+                                />
+                                <div>
+                                  {campaign.title.length > 30
+                                    ? campaign.title.substring(0, 30) + "..."
+                                    : campaign.title}
+                                  <div className="text-xs text-muted-foreground">
+                                    /c/
+                                    {campaign.slug.length > 20
+                                      ? campaign.slug.substring(0, 20) + "..."
+                                      : campaign.slug}
+                                  </div>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>{campaign.feedbackCount || 0}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <Star
+                                  className="h-4 w-4 text-yellow-500 mr-1"
+                                  fill="currentColor"
+                                />
+                                {campaign.averageRating?.toFixed(1) || "0.0"}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  campaign.status === "Active"
+                                    ? "bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-400"
+                                    : campaign.status === "Draft"
+                                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-800/30 dark:text-yellow-400"
+                                    : "bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-400"
+                                }`}
+                              >
+                                {campaign.status}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {formatDate(
+                                campaign.createdAt,
+                                getCurrentTimeZone()
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    <span className="sr-only">Actions</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {" "}
+                                  <DropdownMenuItem>
+                                    <Link
+                                      to={`/c/${campaign.slug}`}
+                                      className="flex items-center w-full"
+                                      target="_blank"
+                                    >
+                                      <Eye className="h-4 w-4 mr-2" />
+                                      View Campaign
+                                    </Link>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem>
+                                    <Link
+                                      to={`/dashboard/feedback?campaignId=${campaign._id}`}
+                                      className="flex items-center w-full"
+                                    >
+                                      <MessageSquare className="h-4 w-4 mr-2" />
+                                      View Feedback
+                                    </Link>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleEditClick(campaign)}
+                                  >
+                                    <Edit3 className="h-4 w-4 mr-2" />
+                                    Edit Campaign
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(
+                                        `${window.location.origin}/c/${campaign.slug}`
+                                      );
+                                      toast({
+                                        title: "Campaign link copied!",
+                                        description: "You can now share it.",
+                                        variant: "default",
+                                      });
+                                    }}
+                                  >
+                                    <Share className="h-4 w-4 mr-2" />
+                                    Share Campaign
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-red-600 focus:text-red-600"
+                                    onClick={() => handleDeleteClick(campaign)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Campaign
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell
+                            colSpan={6}
+                            className="text-center py-6 text-muted-foreground"
+                          >
+                            {searchQuery || statusFilter !== "all" ? (
+                              <>
+                                No campaigns found matching your filters.
+                                {searchQuery && (
+                                  <>
+                                    {" "}
+                                    Search: "<strong>{searchQuery}</strong>"
+                                  </>
+                                )}
+                                {statusFilter !== "all" && (
+                                  <>
+                                    {" "}
+                                    Status: "<strong>{statusFilter}</strong>"
+                                  </>
+                                )}
+                              </>
+                            ) : (
+                              "No campaigns found. Create your first campaign to get started."
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Card view for small screens */}
+                <div className="md:hidden space-y-4">
+                  {campaigns.length > 0 ? (
+                    campaigns.map((campaign) => (
+                      <Card key={campaign._id} className="overflow-hidden">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <div
-                                className="h-10 w-10 rounded bg-cover bg-center"
+                                className="h-12 w-12 rounded bg-cover bg-center"
                                 style={{
                                   backgroundImage: `url(${campaign.bannerImage})`,
                                 }}
                               />
                               <div>
-                                {campaign.title.length > 30
-                                  ? campaign.title.substring(0, 30) + "..."
-                                  : campaign.title}
+                                <h3 className="font-medium">
+                                  {campaign.title.length > 30
+                                    ? campaign.title.substring(0, 30) + "..."
+                                    : campaign.title}
+                                </h3>
                                 <div className="text-xs text-muted-foreground">
-                                  /c/
-                                  {campaign.slug.length > 20
-                                    ? campaign.slug.substring(0, 20) + "..."
-                                    : campaign.slug}
+                                  /c/{campaign.slug}
                                 </div>
                               </div>
                             </div>
-                          </TableCell>
-                          <TableCell>{campaign.feedbackCount || 0}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Star
-                                className="h-4 w-4 text-yellow-500 mr-1"
-                                fill="currentColor"
-                              />
-                              {campaign.averageRating?.toFixed(1) || "0.0"}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                campaign.status === "Active"
-                                  ? "bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-400"
-                                  : campaign.status === "Draft"
-                                  ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-800/30 dark:text-yellow-400"
-                                  : "bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-400"
-                              }`}
-                            >
-                              {campaign.status}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            {formatDate(
-                              campaign.createdAt,
-                              getCurrentTimeZone()
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon">
@@ -282,7 +402,6 @@ const Campaigns: React.FC = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                {" "}
                                 <DropdownMenuItem>
                                   <Link
                                     to={`/c/${campaign.slug}`}
@@ -332,44 +451,75 @@ const Campaigns: React.FC = () => {
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell
-                          colSpan={6}
-                          className="text-center py-6 text-muted-foreground"
-                        >
-                          {searchQuery || statusFilter !== "all" ? (
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pb-3 pt-0">
+                          <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <p className="text-muted-foreground">Status</p>
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  campaign.status === "Active"
+                                    ? "bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-400"
+                                    : campaign.status === "Draft"
+                                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-800/30 dark:text-yellow-400"
+                                    : "bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-400"
+                                }`}
+                              >
+                                {campaign.status}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Responses</p>
+                              <p>{campaign.feedbackCount || 0}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Rating</p>
+                              <div className="flex items-center">
+                                <Star
+                                  className="h-4 w-4 text-yellow-500 mr-1"
+                                  fill="currentColor"
+                                />
+                                {campaign.averageRating?.toFixed(1) || "0.0"}
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter className="border-t pt-3 text-xs text-muted-foreground">
+                          Created:{" "}
+                          {formatDate(campaign.createdAt, getCurrentTimeZone())}
+                        </CardFooter>
+                      </Card>
+                    ))
+                  ) : (
+                    <div className="text-center py-6 text-muted-foreground">
+                      {searchQuery || statusFilter !== "all" ? (
+                        <>
+                          No campaigns found matching your filters.
+                          {searchQuery && (
                             <>
-                              No campaigns found matching your filters.
-                              {searchQuery && (
-                                <>
-                                  {" "}
-                                  Search: "<strong>{searchQuery}</strong>"
-                                </>
-                              )}
-                              {statusFilter !== "all" && (
-                                <>
-                                  {" "}
-                                  Status: "<strong>{statusFilter}</strong>"
-                                </>
-                              )}
+                              {" "}
+                              Search: "<strong>{searchQuery}</strong>"
                             </>
-                          ) : (
-                            "No campaigns found. Create your first campaign to get started."
                           )}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                          {statusFilter !== "all" && (
+                            <>
+                              {" "}
+                              Status: "<strong>{statusFilter}</strong>"
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        "No campaigns found. Create your first campaign to get started."
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </CardContent>
           {totalPages > 1 && (
-            <CardFooter className="flex justify-between items-center">
+            <CardFooter className="flex items-center flex-wrap justify-center gap-4 md:justify-between">
               <div className="text-sm text-muted-foreground">
                 Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
                 {Math.min(currentPage * itemsPerPage, totalCampaigns)} of{" "}
