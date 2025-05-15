@@ -1,4 +1,5 @@
 import FeedbackListItem from "@/components/feedback/FeedbackListItem";
+import FeedbackPagination from "@/components/feedback/FeedbackPagination";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,10 +22,15 @@ import api from "@/services/api";
 import { Image, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 
+// Define a constant for items per page
+const ITEMS_PER_PAGE = 5;
+
 const FeedbackList = ({ campaignId }) => {
   const [feedbacks, setFeedbacks] = useState([]);
   const [filteredFeedbacks, setFilteredFeedbacks] = useState([]);
   const [feedbackLoading, setFeedbackLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Filters and sorting
   const [searchQuery, setSearchQuery] = useState("");
@@ -37,24 +43,41 @@ const FeedbackList = ({ campaignId }) => {
       fetchFeedbacks();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [campaignId]);
+  }, [campaignId, currentPage, sortOrder]);
 
   // Apply filters and sorting when feedbacks change or when filters change
   useEffect(() => {
     applyFiltersAndSort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [feedbacks, searchQuery, ratingFilter, sortOrder, hasAttachmentsFilter]);
+  }, [feedbacks, searchQuery, ratingFilter, hasAttachmentsFilter]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, ratingFilter, hasAttachmentsFilter, sortOrder]);
 
   const fetchFeedbacks = async () => {
     try {
       setFeedbackLoading(true);
 
+      // Prepare sort parameter based on sortOrder
+      let sortParam = "-createdAt"; // default is newest first
+      if (sortOrder === "oldest") {
+        sortParam = "createdAt";
+      } else if (sortOrder === "top-rated") {
+        sortParam = "-rating";
+      } else if (sortOrder === "most-upvoted") {
+        sortParam = "-upvotes";
+      } else if (sortOrder === "most-downvoted") {
+        sortParam = "-downvotes";
+      }
+
       const response = await api.get("/feedback/paginated_list", {
         params: {
           campaignId: campaignId,
-          page: 1,
-          limit: 5,
-          sort: "-createdAt",
+          page: currentPage,
+          limit: ITEMS_PER_PAGE,
+          sort: sortParam,
         },
       });
 
@@ -78,6 +101,7 @@ const FeedbackList = ({ campaignId }) => {
         }));
 
         setFeedbacks(formattedFeedbacks);
+        setTotalCount(response.data.pagination.total);
       } else {
         toast({
           title: "Error",
@@ -126,41 +150,21 @@ const FeedbackList = ({ campaignId }) => {
       );
     }
 
-    // Apply sorting
-    switch (sortOrder) {
-      case "newest":
-        result.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-        break;
-      case "oldest":
-        result.sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-        );
-        break;
-      case "top-rated":
-        result.sort((a, b) => b.rating - a.rating);
-        break;
-      case "most-upvoted":
-        result.sort(
-          (a, b) => (b.upvotes?.length || 0) - (a.upvotes?.length || 0)
-        );
-        break;
-      case "most-downvoted":
-        result.sort(
-          (a, b) => (b.downvotes?.length || 0) - (a.downvotes?.length || 0)
-        );
-        break;
-      default:
-        break;
-    }
-
     setFilteredFeedbacks(result);
   };
 
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    // Scroll to top on page change
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Calculate total pages for pagination
+  const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
 
   return (
     <Card className="bg-card shadow-lg">
@@ -238,7 +242,7 @@ const FeedbackList = ({ campaignId }) => {
               </Button>
             </div>
             <div className="text-sm text-muted-foreground">
-              Showing {filteredFeedbacks.length} of {feedbacks.length} responses
+              Showing {filteredFeedbacks.length} of {totalCount} responses
             </div>
           </div>
         </div>
@@ -279,6 +283,14 @@ const FeedbackList = ({ campaignId }) => {
             </div>
           )}
         </ScrollArea>
+
+        {!feedbackLoading && totalCount > ITEMS_PER_PAGE && (
+          <FeedbackPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
+        )}
       </CardContent>
     </Card>
   );
