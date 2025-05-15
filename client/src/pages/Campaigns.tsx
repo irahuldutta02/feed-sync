@@ -57,7 +57,7 @@ import { Link } from "react-router-dom";
 const Campaigns: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const itemsPerPage = 1;
+  const itemsPerPage = 5;
   const [totalPages, setTotalPages] = useState<number>(1);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
