@@ -4,6 +4,7 @@ import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { Logo } from "../ui-custom/Logo";
 
 type DashboardLayoutProps = {
   children: React.ReactNode;
@@ -31,15 +32,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 <DashboardSidebar />
               </SheetContent>
             </Sheet>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-brand-800 dark:from-brand-400 dark:to-brand-600">
-              FeedSync
-            </span>
+            <Logo />
           </div>
-          <ThemeToggle />
+          {/* <ThemeToggle /> */}
         </header>
 
-        {/* Desktop Header */}
-        {/* <header className="hidden md:flex items-center justify-end p-4 border-b bg-background">
+        {/* Desktop Header
+        <header className="hidden md:flex items-center justify-end p-4 border-b bg-background">
           <ThemeToggle />
         </header> */}
 

@@ -131,7 +131,7 @@ const Index = () => {
                 <div className="absolute -inset-0.5 rounded-xl bg-gradient-to-r from-brand-600 to-brand-400 opacity-75 blur"></div>
                 <div className="relative rounded-xl overflow-hidden shadow-xl">
                   <img
-                    src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"
+                    src="/assets/dashboard.png"
                     alt="FeedSync Dashboard"
                     className="w-full h-auto rounded-xl"
                   />
@@ -333,9 +333,6 @@ const Index = () => {
                   >
                     Get Started For Free
                   </Button>
-                  <p className="mt-4 text-sm text-muted-foreground">
-                    No credit card required. 14-day free trial.
-                  </p>
                 </>
               )}
             </motion.div>
