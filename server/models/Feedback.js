@@ -50,7 +50,6 @@ const FeedbackSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
-    // Store actual counts to make sorting more efficient
     upvoteCount: {
       type: Number,
       default: 0,

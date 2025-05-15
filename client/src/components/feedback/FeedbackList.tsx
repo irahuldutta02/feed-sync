@@ -187,8 +187,11 @@ const FeedbackList = ({ campaignId }) => {
             <div className="w-full sm:w-48">
               <label className="text-sm font-medium text-muted-foreground block mb-2">
                 Filter by Rating
-              </label>
-              <Select value={ratingFilter} onValueChange={setRatingFilter}>
+              </label>{" "}
+              <Select
+                value={ratingFilter}
+                onValueChange={(value) => setRatingFilter(value || "all")}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="All Ratings" />
                 </SelectTrigger>

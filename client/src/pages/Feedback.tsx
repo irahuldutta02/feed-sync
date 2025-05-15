@@ -45,7 +45,8 @@ import {
   ThumbsDown,
   ThumbsUp,
 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { formatDateTime } from "../util/util";
 
 const ITEMS_PER_PAGE = 5;
@@ -53,17 +54,18 @@ const ITEMS_PER_PAGE = 5;
 const Feedback = () => {
   const { toast } = useToast();
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
   // State for API data and loading
   const [feedbackData, setFeedbackData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
   const [totalCount, setTotalCount] = useState(0);
 
   // Filters and pagination
   const [searchInputValue, setSearchInputValue] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [ratingFilter, setRatingFilter] = useState("all");
-  const [campaignFilter, setCampaignFilter] = useState("all");
   const [selectedFeedback, setSelectedFeedback] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -71,9 +73,7 @@ const Feedback = () => {
   const [hasAttachmentsFilter, setHasAttachmentsFilter] = useState(false);
 
   // Campaign list for the dropdown
-  const [campaigns, setCampaigns] = useState<{ id: string; name: string }[]>(
-    []
-  );
+  const [campaigns, setCampaigns] = useState([]);
 
   // Debounce search input to avoid frequent API calls
   const debouncedSearch = useDebounce((value: string) => {
@@ -81,65 +81,31 @@ const Feedback = () => {
   }, 500);
 
   // Handle search input changes
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e) => {
     const value = e.target.value;
-    // Update the input value immediately for UI feedback
     setSearchInputValue(value);
-    // Debounce the actual search query update
     debouncedSearch(value);
   };
 
-  // Fix the main useEffect for fetching data
-  useEffect(() => {
-    // Only fetch if we have campaigns loaded
-    if (campaigns.length > 0) {
-      if (campaignFilter === "all" && campaigns.length > 1) {
-        // In "All My Campaigns" mode with multiple campaigns
-        fetchAllCampaignsFeedback();
-      } else {
-        // Single campaign mode or only one campaign exists
-        fetchFeedback();
-      }
-    } else if (!loading) {
-      // If campaigns array is empty but not in loading state, set appropriate message
-      setFeedbackData([]);
-      setTotalCount(0);
-      setError(
-        "No campaigns found. Create a campaign first to collect feedback."
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    currentPage,
-    ratingFilter,
-    campaignFilter,
-    sortOrder,
-    hasAttachmentsFilter,
-    searchQuery,
-    campaigns.length,
-  ]);
+  // Always derive campaignFilter from query string
+  const campaignFilter = searchParams.get("campaignId") ?? "all";
 
+  // Fetch campaigns on mount
   useEffect(() => {
     const fetchCampaigns = async () => {
+      setLoading(true);
       try {
         const response = await getUserCampaigns();
         if (response.data && Array.isArray(response.data)) {
-          const formattedCampaigns = response.data.map((campaign) => ({
-            id: campaign._id,
-            name: campaign.title || campaign.name, // Support both title and name
-          }));
-
-          if (formattedCampaigns.length > 0) {
-            setCampaigns(formattedCampaigns);
-
-            // Don't automatically select a campaign by default
-            // This allows the "All My Campaigns" option to work
-            // The API handler will use the first campaign when "all" is selected
-          } else {
-            setCampaigns([]);
+          setCampaigns(response.data);
+          if (response.data.length === 0) {
             setError(
               "No campaigns found. Create a campaign first to collect feedback."
             );
+          }
+          // If no campaignId in query, set it to the first campaign
+          if (response.data.length > 0 && !searchParams.get("campaignId")) {
+            setSearchParams({ campaignId: response.data[0]._id });
           }
         }
       } catch (error) {
@@ -155,13 +121,11 @@ const Feedback = () => {
         setLoading(false);
       }
     };
-
     fetchCampaigns();
-  }, [toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Flag to track when we're loading data from multiple campaigns
-  const [isFetchingAllCampaigns, setIsFetchingAllCampaigns] = useState(false);
-
+  // Reset to page 1 on filter/search change
   useEffect(() => {
     setCurrentPage(1);
   }, [
@@ -172,329 +136,120 @@ const Feedback = () => {
     hasAttachmentsFilter,
   ]);
 
-  // Add debounce to search input
+  // Fetch feedback data
   useEffect(() => {
-    if (campaigns.length === 0) return;
+    const fetchFeedback = async () => {
+      setLoading(true);
+      setError(null);
 
-    const timeoutId = setTimeout(() => {
-      fetchFeedback();
-    }, 500); // 500ms debounce
+      if (campaigns.length === 0) {
+        setFeedbackData([]);
+        setTotalCount(0);
+        setLoading(false);
+        return;
+      }
 
-    return () => clearTimeout(timeoutId);
+      // Build campaignId param
+      let campaignIdParam = "";
+      if (campaignFilter === "all") {
+        campaignIdParam = campaigns.map((c) => c._id).join(",");
+      } else {
+        campaignIdParam = campaignFilter;
+      }
+
+      // Build params
+      const params: {
+        campaignId: string;
+        page: number;
+        limit: number;
+        sort?: string;
+        search?: string;
+        rating?: string;
+        hasAttachments?: string;
+      } = {
+        campaignId: campaignIdParam,
+        page: currentPage,
+        limit: ITEMS_PER_PAGE,
+      };
+
+      // Sort
+      if (sortOrder === "newest") params.sort = "-createdAt";
+      else if (sortOrder === "oldest") params.sort = "createdAt";
+      else if (sortOrder === "top-rated") params.sort = "-rating";
+      else if (sortOrder === "most-upvoted") params.sort = "-upvotes";
+      else if (sortOrder === "most-downvoted") params.sort = "-downvotes";
+
+      // Filters
+      if (searchQuery) params.search = searchQuery;
+      if (ratingFilter !== "all") params.rating = ratingFilter;
+      if (hasAttachmentsFilter) params.hasAttachments = "true";
+
+      try {
+        const response = await getFeedbackList(params);
+
+        if (!response.data || !Array.isArray(response.data)) {
+          throw new Error("Invalid response format from server");
+        }
+
+        setFeedbackData(response.data);
+
+        if (
+          response.pagination &&
+          typeof response.pagination.total === "number"
+        ) {
+          setTotalCount(response.pagination.total);
+        } else {
+          setTotalCount(response.data.length);
+        }
+
+        if (response.data.length === 0) {
+          setError(
+            searchQuery || ratingFilter !== "all" || hasAttachmentsFilter
+              ? "No feedback found with the selected filters"
+              : campaignFilter === "all" && campaigns.length > 1
+              ? "No feedback found across any of your campaigns. Share your campaign links to collect feedback."
+              : "No feedback found for the selected campaign. Share your campaign link to collect feedback."
+          );
+        } else {
+          setError(null);
+        }
+      } catch (error) {
+        setFeedbackData([]);
+        setTotalCount(0);
+        setError("Failed to load feedback data. Please try again.");
+        toast({
+          title: "Error",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Failed to load feedback data",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeedback();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  }, [
+    currentPage,
+    ratingFilter,
+    campaignFilter,
+    sortOrder,
+    hasAttachmentsFilter,
+    searchQuery,
+    campaigns.length,
+  ]);
 
   const handleViewDetails = (feedback) => {
     setSelectedFeedback(feedback);
     setDetailsOpen(true);
   };
 
-  const handlePageChange = (page: number) => {
+  const handlePageChange = (page) => {
     setCurrentPage(page);
-    // Scroll to top of table on page change
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  // First, let's fix the fetchFeedback function to handle filters properly
-  const fetchFeedback = async (
-    specificCampaignId?: string,
-    isAllCampaignsMode = false
-  ) => {
-    if (!isAllCampaignsMode) {
-      setLoading(true);
-    } else {
-      setIsFetchingAllCampaigns(true);
-    }
-    setError(null);
-
-    try {
-      // Build query parameters
-      const params: Record<string, string | number> = {
-        page: currentPage,
-        limit: ITEMS_PER_PAGE,
-      };
-
-      // Add campaign filter (required by the API)
-      if (campaigns.length === 0) {
-        // No campaigns available yet, can't fetch feedback
-        setFeedbackData([]);
-        setTotalCount(0);
-        setError(
-          "No campaigns found. Create a campaign first to collect feedback."
-        );
-        setLoading(false);
-        setIsFetchingAllCampaigns(false);
-        return;
-      }
-
-      // If a specific campaign is selected or provided, use it
-      if (specificCampaignId) {
-        params.campaignId = specificCampaignId;
-      } else if (campaignFilter !== "all") {
-        params.campaignId = campaignFilter;
-      } else if (campaigns.length > 0) {
-        params.campaignId = campaigns[0].id;
-      }
-
-      // Add sort order
-      if (sortOrder === "newest") {
-        params.sort = "-createdAt";
-      } else if (sortOrder === "oldest") {
-        params.sort = "createdAt";
-      } else if (sortOrder === "top-rated") {
-        params.sort = "-rating";
-      } else if (sortOrder === "most-upvoted") {
-        params.sort = "-upvotes";
-      } else if (sortOrder === "most-downvoted") {
-        params.sort = "-downvotes";
-      }
-
-      // Add search query
-      if (searchQuery) {
-        params.search = searchQuery;
-      }
-
-      // Add rating filter as a parameter (even though the server might not support it)
-      if (ratingFilter !== "all") {
-        params.rating = parseInt(ratingFilter);
-      }
-
-      const response = await getFeedbackList(params);
-
-      // Check if response data is valid
-      if (!response.data || !Array.isArray(response.data)) {
-        throw new Error("Invalid response format from server");
-      }
-
-      // Apply client-side filters
-      let filteredData = response.data;
-
-      // Client-side filter by rating if needed
-      if (ratingFilter !== "all") {
-        const numericRating = parseInt(ratingFilter);
-        filteredData = filteredData.filter(
-          (item) => item.rating === numericRating
-        );
-      }
-
-      // Client-side filter by attachments
-      if (hasAttachmentsFilter) {
-        filteredData = filteredData.filter(
-          (item) => item.attachments && item.attachments.length > 0
-        );
-      }
-
-      setFeedbackData(filteredData);
-
-      // Adjust total count to reflect filtered results for client-side filtering
-      if (ratingFilter !== "all" || hasAttachmentsFilter) {
-        setTotalCount(filteredData.length);
-      } else if (
-        response.pagination &&
-        typeof response.pagination.total === "number"
-      ) {
-        // Use the total from pagination for server-side pagination
-        setTotalCount(response.pagination.total);
-      } else {
-        // Fallback if pagination data is missing
-        setTotalCount(filteredData.length);
-      }
-
-      // If we got empty results but no error, set appropriate message
-      if (filteredData.length === 0) {
-        setError(
-          searchQuery || ratingFilter !== "all" || hasAttachmentsFilter
-            ? "No feedback found with the selected filters"
-            : campaignFilter === "all" && campaigns.length > 1
-            ? "No feedback found across any of your campaigns. Share your campaign links to collect feedback."
-            : "No feedback found for the selected campaign. Share your campaign link to collect feedback."
-        );
-      } else {
-        setError(null);
-      }
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to load feedback data";
-
-      // Check if the error message contains the campaign ID error
-      const campaignIdRequired =
-        (error instanceof Error &&
-          error.message.includes("Campaign ID is required")) ||
-        /campaign.*id.*required/i.test(errorMessage);
-
-      console.error("Error fetching feedback:", error);
-
-      // Set appropriate error message
-      if (campaignIdRequired) {
-        setError("Please select a campaign to view feedback.");
-      } else {
-        setError("Failed to load feedback data. Please try again.");
-      }
-
-      // Set empty data
-      setFeedbackData([]);
-      setTotalCount(0);
-
-      toast({
-        title: "Error",
-        description: campaignIdRequired
-          ? "Please select a campaign to view feedback"
-          : errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-      setIsFetchingAllCampaigns(false);
-    }
-  };
-
-  // Now let's fix the fetchAllCampaignsFeedback function for proper pagination
-  const fetchAllCampaignsFeedback = async () => {
-    setLoading(true);
-    setIsFetchingAllCampaigns(true);
-    setError(null);
-
-    try {
-      // If no campaigns, return early with appropriate message
-      if (campaigns.length === 0) {
-        setFeedbackData([]);
-        setTotalCount(0);
-        setError(
-          "No campaigns found. Create a campaign first to collect feedback."
-        );
-        setLoading(false);
-        setIsFetchingAllCampaigns(false);
-        return;
-      }
-
-      // Create base params for all requests
-      const baseParams: Record<string, string | number> = {
-        // Get more data for client-side pagination
-        limit: 100, // Increased limit to get more data at once
-      };
-
-      // Add sort order
-      if (sortOrder === "newest") {
-        baseParams.sort = "-createdAt";
-      } else if (sortOrder === "oldest") {
-        baseParams.sort = "createdAt";
-      } else if (sortOrder === "top-rated") {
-        baseParams.sort = "-rating";
-      } else if (sortOrder === "most-upvoted") {
-        baseParams.sort = "-upvotes";
-      } else if (sortOrder === "most-downvoted") {
-        baseParams.sort = "-downvotes";
-      }
-
-      // Add search query
-      if (searchQuery) {
-        baseParams.search = searchQuery;
-      }
-
-      // Add rating filter as a parameter
-      if (ratingFilter !== "all") {
-        baseParams.rating = parseInt(ratingFilter);
-      }
-
-      // Make a request for each campaign and collect results
-      let allFeedbacks = [];
-
-      // Only fetch for the first 5 campaigns to avoid too many requests
-      const campaignsToFetch = campaigns.slice(0, 5);
-
-      const promises = campaignsToFetch.map((campaign) => {
-        const params = { ...baseParams, campaignId: campaign.id };
-        return getFeedbackList(params);
-      });
-
-      const results = await Promise.all(promises);
-
-      // Combine results
-      results.forEach((result) => {
-        if (result?.data && Array.isArray(result.data)) {
-          allFeedbacks = [...allFeedbacks, ...result.data];
-        }
-      });
-
-      // Sort the combined data
-      if (sortOrder === "newest") {
-        allFeedbacks.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-      } else if (sortOrder === "oldest") {
-        allFeedbacks.sort(
-          (a, b) =>
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
-      } else if (sortOrder === "top-rated") {
-        allFeedbacks.sort((a, b) => b.rating - a.rating);
-      } else if (sortOrder === "most-upvoted") {
-        allFeedbacks.sort(
-          (a, b) => (b.upvotes?.length || 0) - (a.upvotes?.length || 0)
-        );
-      } else if (sortOrder === "most-downvoted") {
-        allFeedbacks.sort(
-          (a, b) => (b.downvotes?.length || 0) - (a.downvotes?.length || 0)
-        );
-      }
-
-      // Apply client-side filter by rating if needed
-      if (ratingFilter !== "all") {
-        const numericRating = parseInt(ratingFilter);
-        allFeedbacks = allFeedbacks.filter(
-          (item) => item.rating === numericRating
-        );
-      }
-
-      // Client-side filter by attachments
-      if (hasAttachmentsFilter) {
-        allFeedbacks = allFeedbacks.filter(
-          (item) => item.attachments && item.attachments.length > 0
-        );
-      }
-
-      // Store the total count before pagination
-      const totalItems = allFeedbacks.length;
-
-      // Paginate on client-side
-      const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
-      const endIdx = startIdx + ITEMS_PER_PAGE;
-      const paginatedResults = allFeedbacks.slice(startIdx, endIdx);
-
-      setFeedbackData(paginatedResults);
-      setTotalCount(totalItems); // Use the total count of filtered items
-
-      // If we got empty results but no error, set appropriate message
-      if (paginatedResults.length === 0) {
-        setError(
-          searchQuery || ratingFilter !== "all" || hasAttachmentsFilter
-            ? "No feedback found with the selected filters"
-            : "No feedback found across any of your campaigns. Share your campaign links to collect feedback."
-        );
-      } else {
-        setError(null);
-      }
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to load feedback data";
-
-      console.error("Error fetching all campaigns feedback:", error);
-
-      // Set empty data
-      setFeedbackData([]);
-      setTotalCount(0);
-      setError("Failed to load feedback data. Please try again.");
-
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-      setIsFetchingAllCampaigns(false);
-    }
   };
 
   return (
@@ -560,7 +315,13 @@ const Feedback = () => {
                 </label>
                 <Select
                   value={campaignFilter}
-                  onValueChange={setCampaignFilter}
+                  onValueChange={(value) => {
+                    setSearchParams((prev) => {
+                      const params = new URLSearchParams(prev);
+                      params.set("campaignId", value);
+                      return params;
+                    });
+                  }}
                   disabled={campaigns.length === 0}
                 >
                   <SelectTrigger>
@@ -573,20 +334,14 @@ const Feedback = () => {
                     />
                   </SelectTrigger>
                   <SelectContent>
-                    {campaigns.length > 0 ? (
-                      <>
-                        <SelectItem value="all">All My Campaigns</SelectItem>
-                        {campaigns.map((campaign) => (
-                          <SelectItem key={campaign.id} value={campaign.id}>
-                            {campaign.name}
-                          </SelectItem>
-                        ))}
-                      </>
-                    ) : (
-                      <SelectItem value="all" disabled>
-                        No campaigns found
+                    <SelectItem disabled value="all">
+                      Select Campaign
+                    </SelectItem>
+                    {campaigns.map((campaign) => (
+                      <SelectItem key={campaign._id} value={campaign._id}>
+                        {campaign.title}
                       </SelectItem>
-                    )}
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -652,11 +407,7 @@ const Feedback = () => {
                       <TableCell colSpan={6} className="text-center py-8">
                         <div className="flex justify-center items-center">
                           <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                          <span>
-                            {isFetchingAllCampaigns
-                              ? "Loading feedback from all campaigns..."
-                              : "Loading feedback data..."}
-                          </span>
+                          <span>Loading feedback data...</span>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -825,7 +576,6 @@ const Feedback = () => {
 
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                {" "}
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground mb-1">
                     From

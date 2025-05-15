@@ -43,6 +43,7 @@ import {
   Edit3,
   Eye,
   Loader2,
+  MessageSquare,
   MoreHorizontal,
   Plus,
   Search,
@@ -281,6 +282,7 @@ const Campaigns: React.FC = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
+                                {" "}
                                 <DropdownMenuItem>
                                   <Link
                                     to={`/c/${campaign.slug}`}
@@ -289,6 +291,15 @@ const Campaigns: React.FC = () => {
                                   >
                                     <Eye className="h-4 w-4 mr-2" />
                                     View Campaign
+                                  </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                  <Link
+                                    to={`/dashboard/feedback?campaignId=${campaign._id}`}
+                                    className="flex items-center w-full"
+                                  >
+                                    <MessageSquare className="h-4 w-4 mr-2" />
+                                    View Feedback
                                   </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
