@@ -11,6 +11,7 @@ const authRouter = require("./routes/authRoutes");
 const feedbackRouter = require("./routes/feedbackRoutes");
 const uploadRouter = require("./routes/uploadRoutes");
 const dashboardRouter = require("./routes/dashboardRoutes");
+const { job } = require("./jobs/cron");
 
 dotenv.config();
 connectDB();
@@ -38,6 +39,8 @@ app.use(
 require("./config/passport")(passport);
 app.use(passport.initialize());
 app.use(passport.session());
+
+job.start();
 
 app.get("/", (req, res) => {
   return res.status(200).json({
