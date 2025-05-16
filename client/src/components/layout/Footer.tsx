@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Logo } from "../ui-custom/Logo";
 
 const Footer = () => {
@@ -163,20 +164,20 @@ const Footer = () => {
                 </a>
               </li>
               <li>
-                <a
-                  href="#"
+                <Link
+                  to="/privacy-policy"
                   className="text-muted-foreground hover:text-brand-600"
                 >
                   Privacy Policy
-                </a>
+                </Link>
               </li>
               <li>
-                <a
-                  href="#"
+                <Link
+                  to="/terms-of-service"
                   className="text-muted-foreground hover:text-brand-600"
                 >
                   Terms of Service
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

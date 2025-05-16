@@ -7,8 +7,10 @@ import FeedbackForm from "@/pages/FeedbackForm";
 import Index from "@/pages/Index";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/NotFound";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import Settings from "@/pages/Settings";
 import Signup from "@/pages/Signup";
+import TermsOfService from "@/pages/TermsOfService";
 import { Navigate, Outlet, useRoutes } from "react-router-dom";
 
 const Layout = () => {
@@ -22,7 +24,6 @@ const Layout = () => {
 // Pages
 export const MainRoutes = () => {
   const { isAuthenticated } = useAuth();
-
   const authenticatedRoutes = [
     {
       path: "/",
@@ -32,6 +33,8 @@ export const MainRoutes = () => {
         { path: "/c/:slug", element: <FeedbackForm /> },
         { path: "login", element: <Navigate to="/dashboard" replace /> },
         { path: "signup", element: <Navigate to="/dashboard" replace /> },
+        { path: "privacy-policy", element: <PrivacyPolicy /> },
+        { path: "terms-of-service", element: <TermsOfService /> },
         { path: "*", element: <NotFound /> },
       ],
     },
@@ -46,7 +49,6 @@ export const MainRoutes = () => {
       ],
     },
   ];
-
   const unauthenticatedRoutes = [
     {
       path: "/",
@@ -56,6 +58,8 @@ export const MainRoutes = () => {
         { path: "login", element: <Login /> },
         { path: "signup", element: <Signup /> },
         { path: "auth/callback", element: <AuthCallbackPage /> },
+        { path: "privacy-policy", element: <PrivacyPolicy /> },
+        { path: "terms-of-service", element: <TermsOfService /> },
         { path: "c/:slug", element: <FeedbackForm /> },
         { path: "*", element: <NotFound /> },
       ],
