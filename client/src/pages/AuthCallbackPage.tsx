@@ -1,4 +1,5 @@
 // client/src/pages/AuthCallbackPage.jsx
+import { Logo } from "@/components/ui-custom/Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/services/api";
 import React, { useEffect } from "react";
@@ -48,7 +49,9 @@ const AuthCallbackPage = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen">
-      Processing authentication...
+      <span className="flex flex-col items-center justify-center animate-pulse">
+        <Logo />
+      </span>
     </div>
   );
 };
