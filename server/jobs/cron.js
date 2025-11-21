@@ -1,17 +1,24 @@
 const cron = require("cron");
-const https = require("https");
-const { API_URL } = require("../config/serverConfig");
+const axios = require("axios");
+const mongoose = require("mongoose");
+const { SERVER_URL } = require("../config/serverConfig");
 
-const job = new cron.CronJob("*/14 * * * *", function () {
-  https
-    .get(API_URL, (res) => {
-      if (res.statusCode === 200) {
-        console.log("GET request sent successfully");
-      } else {
-        console.log("GET request failed", res.statusCode);
-      }
-    })
-    .on("error", (e) => console.error("Error while sending request", e));
+const job = new cron.CronJob("*/5 * * * *", async function () {
+  try {
+    const res = await axios.get(SERVER_URL);
+    if (res.status === 200) {
+      console.log("GET request sent successfully");
+    } else {
+      console.log("GET request failed", res.status);
+    }
+
+    const totalCollections = await mongoose.connection.db
+      .listCollections()
+      .toArray();
+    console.log("Total Mongoose Collections:", totalCollections.length);
+  } catch (e) {
+    console.error("Error while sending request", e.message || e);
+  }
 });
 
 module.exports = { job };
