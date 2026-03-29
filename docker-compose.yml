@@ -1,0 +1,49 @@
+version: "3.8"
+
+services:
+  mongodb:
+    image: mongo:4.4
+    container_name: feedsync-mongodb
+    restart: unless-stopped
+    command: [
+      "mongod",
+      "--bind_ip_all",
+      "--wiredTigerCacheSizeGB", "0.25"
+    ]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    volumes:
+      - feedsync_mongo_data:/data/db
+    networks:
+      - feedsync-network
+
+  backend:
+    build: ./server
+    container_name: feedsync-backend
+    restart: unless-stopped
+    ports:
+      - "5002:5000"
+    env_file:
+      - ./server/.env
+    depends_on:
+      - mongodb
+    networks:
+      - feedsync-network
+
+  frontend:
+    build: ./client
+    container_name: feedsync-frontend
+    restart: unless-stopped
+    ports:
+      - "3006:80"
+    depends_on:
+      - backend
+    networks:
+      - feedsync-network
+
+volumes:
+  feedsync_mongo_data:
+
+networks:
+  feedsync-network:
