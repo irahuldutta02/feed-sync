@@ -11,7 +11,6 @@ const authRouter = require("./routes/authRoutes");
 const feedbackRouter = require("./routes/feedbackRoutes");
 const uploadRouter = require("./routes/uploadRoutes");
 const dashboardRouter = require("./routes/dashboardRoutes");
-const { job } = require("./jobs/cron");
 
 dotenv.config();
 connectDB();
@@ -22,7 +21,7 @@ app.use(
   cors({
     origin: process.env.CLIENT_URL,
     credentials: true,
-  })
+  }),
 );
 
 app.use(express.json());
@@ -33,14 +32,12 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-  })
+  }),
 );
 
 require("./config/passport")(passport);
 app.use(passport.initialize());
 app.use(passport.session());
-
-job.start();
 
 app.get("/", (req, res) => {
   return res.status(200).json({
@@ -60,5 +57,5 @@ app.use(notFound);
 app.use(errorHandler);
 
 app.listen(SERVER_PORT, () =>
-  console.log(`Server running on port ${SERVER_URL}`)
+  console.log(`Server running on port ${SERVER_URL}`),
 );
