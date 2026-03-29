@@ -17,7 +17,8 @@ services:
       - feedsync-network
 
   backend:
-    build: ./server
+    build:
+      context: ./server
     container_name: feedsync-backend
     restart: unless-stopped
     ports:
@@ -30,7 +31,8 @@ services:
       - feedsync-network
 
   frontend:
-    build: ./client
+    build:
+      context: ./client
     container_name: feedsync-frontend
     restart: unless-stopped
     ports:
