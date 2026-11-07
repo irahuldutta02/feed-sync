@@ -189,6 +189,17 @@ const Footer = () => {
           </p>
         </div>
       </div>
+
+      {/* Big wordmark */}
+      <div
+        aria-hidden="true"
+        className="relative overflow-hidden select-none pointer-events-none"
+      >
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-brand-500/10 to-transparent" />
+        <p className="relative text-center font-black leading-[0.8] tracking-tighter whitespace-nowrap text-[17vw] -mb-[0.1em] bg-gradient-to-b from-brand-500/50 via-brand-600/20 to-transparent bg-clip-text text-transparent">
+          FeedSync
+        </p>
+      </div>
     </footer>
   );
 };

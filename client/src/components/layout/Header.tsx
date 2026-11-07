@@ -27,7 +27,7 @@ const Header = () => {
       className={cn(
         "fixed top-0 w-full z-50 transition-all duration-300",
         isScrolled
-          ? "bg-background/95 backdrop-blur-md shadow-sm"
+          ? "bg-background/80 backdrop-blur-xl border-b border-border/60"
           : "bg-transparent"
       )}
     >
@@ -41,6 +41,17 @@ const Header = () => {
 
           {/* Desktop navigation */}
           <nav className="flex items-center space-x-8">
+            <div className="hidden md:flex items-center space-x-6 text-sm font-medium text-muted-foreground">
+              <a href="/#features" className="hover:text-brand-600 transition-colors">
+                Features
+              </a>
+              <a href="/#how-it-works" className="hover:text-brand-600 transition-colors">
+                How it works
+              </a>
+              <a href="/#testimonials" className="hover:text-brand-600 transition-colors">
+                Testimonials
+              </a>
+            </div>
             {isAuthenticated ? (
               <Link to="/dashboard">
                 <Button className="bg-brand-600 hover:bg-brand-700 text-white">
